@@ -64,6 +64,9 @@ Published plugin images and runtime consumption patterns are documented in
 
 Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
 
+Compatibility and deprecation rules for released APIs and documented interfaces
+are documented in [docs/compatibility.md](docs/compatibility.md).
+
 You can reach the maintainers of this project at:
 
 - [Slack](https://kubernetes.slack.com/messages/sig-multicluster)
