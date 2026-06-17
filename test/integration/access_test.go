@@ -15,7 +15,7 @@ import (
 	clientauthenticationv1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
-	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha1"
+	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 	"sigs.k8s.io/cluster-inventory-api/pkg/access"
 	"sigs.k8s.io/yaml"
 )
@@ -29,21 +29,21 @@ var _ = ginkgo.Describe("Access config test", func() {
 		clusterName = fmt.Sprintf("cluster-%s", rand.String(5))
 		clusterManagerName = fmt.Sprintf("cluster-manager-%s", rand.String(5))
 
-		clusterProfile := &v1alpha1.ClusterProfile{
+		clusterProfile := &v1alpha2.ClusterProfile{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName,
-				Labels:    map[string]string{v1alpha1.LabelClusterManagerKey: clusterManagerName},
+				Labels:    map[string]string{v1alpha2.LabelClusterManagerKey: clusterManagerName},
 				Namespace: testNamespace,
 			},
-			Spec: v1alpha1.ClusterProfileSpec{
+			Spec: v1alpha2.ClusterProfileSpec{
 				DisplayName: clusterName,
-				ClusterManager: v1alpha1.ClusterManager{
+				ClusterManager: v1alpha2.ClusterManager{
 					Name: clusterManagerName,
 				},
 			},
 		}
 
-		_, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Create(
+		_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
 			context.TODO(),
 			clusterProfile,
 			metav1.CreateOptions{},
@@ -62,12 +62,12 @@ var _ = ginkgo.Describe("Access config test", func() {
 	})
 
 	ginkgo.It("Should get access config by cluster profile", func() {
-		cp, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Get(
+		cp, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Get(
 			context.TODO(), clusterName, metav1.GetOptions{})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-		cp.Status = v1alpha1.ClusterProfileStatus{
-			AccessProviders: []v1alpha1.AccessProvider{
+		cp.Status = v1alpha2.ClusterProfileStatus{
+			AccessProviders: []v1alpha2.AccessProvider{
 				{
 					Name: "provider1",
 					Cluster: clientcmdv1.Cluster{
@@ -78,7 +78,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 			},
 		}
 
-		cp, err = clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).UpdateStatus(
+		cp, err = clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
 			context.TODO(),
 			cp,
 			metav1.UpdateOptions{},

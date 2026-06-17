@@ -5,7 +5,7 @@ import (
 	"log"
 
 	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
-	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha1"
+	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 	"sigs.k8s.io/cluster-inventory-api/pkg/access"
 )
 
@@ -20,12 +20,12 @@ func main() {
 
 	// normally we would get this clusterprofile from the local cluster (maybe a watch?)
 	// and we would maintain the restconfigs for clusters we're interested in.
-	exampleClusterProfile := v1alpha1.ClusterProfile{
-		Spec: v1alpha1.ClusterProfileSpec{
+	exampleClusterProfile := v1alpha2.ClusterProfile{
+		Spec: v1alpha2.ClusterProfileSpec{
 			DisplayName: "My Cluster",
 		},
-		Status: v1alpha1.ClusterProfileStatus{
-			AccessProviders: []v1alpha1.AccessProvider{
+		Status: v1alpha2.ClusterProfileStatus{
+			AccessProviders: []v1alpha2.AccessProvider{
 				{
 					Name: "gkeFleet",
 					Cluster: clientcmdv1.Cluster{

@@ -116,7 +116,7 @@ kubectl --context "kind-hub" create secret generic "spoke-1" \
 echo "[9/9] Create ClusterProfile on hub cluster and patch status with provider"
 kubectl --context "kind-hub" create namespace "fleet" --dry-run=client -o yaml | kubectl --context "kind-hub" apply -f -
 kubectl --context "kind-hub" apply -f - <<EOF
-apiVersion: multicluster.x-k8s.io/v1alpha1
+apiVersion: multicluster.x-k8s.io/v1alpha2
 kind: ClusterProfile
 metadata:
   name: spoke-1

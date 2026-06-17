@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 
-	cpv1alpha1 "sigs.k8s.io/cluster-inventory-api/apis/v1alpha1"
+	cpv1alpha2 "sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 )
 
 var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
@@ -38,22 +38,22 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 	})
 
 	ginkgo.It("Should create a PlacementDecision", func() {
-		placementDecision := &cpv1alpha1.PlacementDecision{
+		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: decisionName,
 				Labels: map[string]string{
-					cpv1alpha1.DecisionKeyLabel: "test-decision",
+					cpv1alpha2.DecisionKeyLabel: "test-decision",
 				},
 			},
-			Decisions: []cpv1alpha1.ClusterDecision{
+			Decisions: []cpv1alpha2.ClusterDecision{
 				{
-					ClusterProfileRef: cpv1alpha1.ClusterProfileReference{
+					ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
 						Name: "cluster-1",
 					},
 					Reason: "best-fit",
 				},
 				{
-					ClusterProfileRef: cpv1alpha1.ClusterProfileReference{
+					ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
 						Name:      "cluster-2",
 						Namespace: "other-ns",
 					},
@@ -62,7 +62,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 			SchedulerName: "test-scheduler",
 		}
 
-		_, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Create(
+		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
 			context.TODO(),
 			placementDecision,
 			metav1.CreateOptions{},
@@ -71,13 +71,13 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 	})
 
 	ginkgo.It("Should update a PlacementDecision", func() {
-		placementDecision := &cpv1alpha1.PlacementDecision{
+		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: decisionName,
 			},
-			Decisions: []cpv1alpha1.ClusterDecision{
+			Decisions: []cpv1alpha2.ClusterDecision{
 				{
-					ClusterProfileRef: cpv1alpha1.ClusterProfileReference{
+					ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
 						Name: "cluster-1",
 					},
 				},
@@ -85,7 +85,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 			SchedulerName: "scheduler-v1",
 		}
 
-		placementDecision, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Create(
+		placementDecision, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
 			context.TODO(),
 			placementDecision,
 			metav1.CreateOptions{},
@@ -93,22 +93,22 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		updated := placementDecision.DeepCopy()
-		updated.Decisions = append(updated.Decisions, cpv1alpha1.ClusterDecision{
-			ClusterProfileRef: cpv1alpha1.ClusterProfileReference{
+		updated.Decisions = append(updated.Decisions, cpv1alpha2.ClusterDecision{
+			ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
 				Name: "cluster-2",
 			},
 			Reason: "best-fit",
 		})
 		updated.SchedulerName = "scheduler-v2"
 
-		_, err = clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Update(
+		_, err = clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Update(
 			context.TODO(),
 			updated,
 			metav1.UpdateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-		got, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Get(
+		got, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Get(
 			context.TODO(),
 			decisionName,
 			metav1.GetOptions{},
@@ -119,28 +119,28 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 	})
 
 	ginkgo.It("Should delete a PlacementDecision", func() {
-		placementDecision := &cpv1alpha1.PlacementDecision{
+		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: decisionName,
 			},
-			Decisions: []cpv1alpha1.ClusterDecision{},
+			Decisions: []cpv1alpha2.ClusterDecision{},
 		}
 
-		_, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Create(
+		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
 			context.TODO(),
 			placementDecision,
 			metav1.CreateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-		err = clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Delete(
+		err = clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Delete(
 			context.TODO(),
 			decisionName,
 			metav1.DeleteOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-		_, err = clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Get(
+		_, err = clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Get(
 			context.TODO(),
 			decisionName,
 			metav1.GetOptions{},
@@ -149,23 +149,23 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 	})
 
 	ginkgo.It("Should reject a PlacementDecision exceeding 100 decisions", func() {
-		decisions := make([]cpv1alpha1.ClusterDecision, 101)
+		decisions := make([]cpv1alpha2.ClusterDecision, 101)
 		for i := range decisions {
-			decisions[i] = cpv1alpha1.ClusterDecision{
-				ClusterProfileRef: cpv1alpha1.ClusterProfileReference{
+			decisions[i] = cpv1alpha2.ClusterDecision{
+				ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
 					Name: fmt.Sprintf("cluster-%d", i),
 				},
 			}
 		}
 
-		placementDecision := &cpv1alpha1.PlacementDecision{
+		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: decisionName,
 			},
 			Decisions: decisions,
 		}
 
-		_, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Create(
+		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
 			context.TODO(),
 			placementDecision,
 			metav1.CreateOptions{},
