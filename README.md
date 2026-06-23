@@ -66,6 +66,8 @@ Learn how to engage with the Kubernetes community on the [community page](http:/
 
 Compatibility and deprecation rules for released APIs and documented interfaces
 are documented in [docs/compatibility.md](docs/compatibility.md).
+API version upgrade and migration notes are documented in
+[docs/api-versions.md](docs/api-versions.md).
 
 You can reach the maintainers of this project at:
 
