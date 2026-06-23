@@ -37,6 +37,9 @@ See the [registry.k8s.io README](https://github.com/kubernetes/k8s.io/tree/main/
 6. Publish the draft GitHub release and close the release issue.
 
 A release checklist is available as an [issue template](.github/ISSUE_TEMPLATE/NEW_RELEASE.md).
+When a release changes CRD versions, CRD fields, or documented public Go APIs,
+copy the relevant upgrade notes from [docs/api-versions.md](docs/api-versions.md)
+into the release changelog.
 
 ### Local build
 
