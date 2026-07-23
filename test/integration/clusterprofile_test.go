@@ -23,6 +23,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -59,6 +60,25 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			metav1.CreateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("Should reject a ClusterProfile with an empty cluster manager name", func() {
+		clusterProfile := &cpv1alpha1.ClusterProfile{
+			ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+			Spec: cpv1alpha1.ClusterProfileSpec{
+				DisplayName: clusterName,
+				ClusterManager: cpv1alpha1.ClusterManager{
+					Name: "",
+				},
+			},
+		}
+
+		_, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Create(
+			context.TODO(),
+			clusterProfile,
+			metav1.CreateOptions{},
+		)
+		gomega.Expect(apierrors.IsInvalid(err)).To(gomega.BeTrue())
 	})
 
 	ginkgo.It("Should update the ClusterProfile status", func() {
