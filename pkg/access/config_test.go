@@ -19,6 +19,8 @@ package access
 import (
 	"encoding/json"
 	"flag"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -367,8 +369,11 @@ var _ = ginkgo.Describe("Config", func() {
 							Name: "test-provider-1",
 							Cluster: clientcmdv1.Cluster{
 								Server:                   "https://test-server.com",
+								TLSServerName:            "tls.test-server.com",
+								InsecureSkipTLSVerify:    true,
 								CertificateAuthorityData: []byte("test-ca-data"),
 								ProxyURL:                 "http://proxy.example.com",
+								DisableCompression:       true,
 								Extensions: []clientcmdv1.NamedExtension{
 									{
 										Name: clusterExecExtensionKey,
@@ -455,6 +460,14 @@ var _ = ginkgo.Describe("Config", func() {
 			gomega.Expect(config).NotTo(gomega.BeNil())
 			gomega.Expect(config.Host).To(gomega.Equal("https://test-server.com"))
 			gomega.Expect(config.TLSClientConfig.CAData).To(gomega.Equal([]byte("test-ca-data")))
+			gomega.Expect(config.TLSClientConfig.ServerName).To(gomega.Equal("tls.test-server.com"))
+			gomega.Expect(config.TLSClientConfig.Insecure).To(gomega.BeTrue())
+			gomega.Expect(config.DisableCompression).To(gomega.BeTrue())
+			request := httptest.NewRequest(http.MethodGet, "https://test-server.com", nil)
+			proxyURL, err := config.Proxy(request)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(proxyURL).NotTo(gomega.BeNil())
+			gomega.Expect(proxyURL.String()).To(gomega.Equal("http://proxy.example.com"))
 			gomega.Expect(config.ExecProvider.Command).To(gomega.Equal("cat"))
 			gomega.Expect(config.ExecProvider.Args).To(gomega.Equal([]string{testFile}))
 
@@ -465,6 +478,29 @@ var _ = ginkgo.Describe("Config", func() {
 				},
 			}
 			gomega.Expect(config.ExecProvider.Env).To(gomega.Equal(wantEnvVars))
+		})
+
+		ginkgo.It("should preserve zero-valued cluster transport settings", func() {
+			clusterProfile.Status.AccessProviders[0].Cluster.TLSServerName = ""
+			clusterProfile.Status.AccessProviders[0].Cluster.InsecureSkipTLSVerify = false
+			clusterProfile.Status.AccessProviders[0].Cluster.ProxyURL = ""
+			clusterProfile.Status.AccessProviders[0].Cluster.DisableCompression = false
+			execCP := New([]Provider{{
+				Name: "test-provider-1",
+				ExecConfig: &clientcmdapi.ExecConfig{
+					Command: "test-command",
+				},
+			}})
+
+			config, err := execCP.BuildConfigFromCP(clusterProfile)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(config.TLSClientConfig.ServerName).To(gomega.BeEmpty())
+			gomega.Expect(config.TLSClientConfig.Insecure).To(gomega.BeFalse())
+			gomega.Expect(config.DisableCompression).To(gomega.BeFalse())
+			request := httptest.NewRequest(http.MethodGet, "https://test-server.com", nil)
+			proxyURL, err := config.Proxy(request)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(proxyURL).To(gomega.BeNil())
 		})
 
 		buildConfigWithEnvVarPolicyTest := func(

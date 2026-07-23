@@ -162,9 +162,12 @@ func (c *Config) BuildConfigFromCP(clusterprofile *v1alpha1.ClusterProfile) (*re
 
 	// 4. build resulting rest.Config
 	config := &rest.Config{
-		Host: clusterAccessor.Cluster.Server,
+		Host:               clusterAccessor.Cluster.Server,
+		DisableCompression: clusterAccessor.Cluster.DisableCompression,
 		TLSClientConfig: rest.TLSClientConfig{
-			CAData: clusterAccessor.Cluster.CertificateAuthorityData,
+			CAData:     clusterAccessor.Cluster.CertificateAuthorityData,
+			ServerName: clusterAccessor.Cluster.TLSServerName,
+			Insecure:   clusterAccessor.Cluster.InsecureSkipTLSVerify,
 		},
 		Proxy: func(request *http.Request) (*url.URL, error) {
 			if clusterAccessor.Cluster.ProxyURL == "" {
