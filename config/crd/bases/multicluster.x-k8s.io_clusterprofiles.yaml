@@ -396,6 +396,7 @@ spec:
                 properties:
                   name:
                     description: Name defines the name of the cluster manager
+                    minLength: 1
                     type: string
                 required:
                 - name

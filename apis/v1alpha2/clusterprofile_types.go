@@ -47,6 +47,7 @@ type ClusterProfileSpec struct {
 // +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ClusterManager is immutable"
 type ClusterManager struct {
 	// Name defines the name of the cluster manager
+	// +kubebuilder:validation:MinLength=1
 	// +required
 	Name string `json:"name"`
 }
