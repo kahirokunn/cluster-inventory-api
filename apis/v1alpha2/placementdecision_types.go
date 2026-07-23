@@ -42,11 +42,17 @@ const (
 // ClusterProfileReference contains the identifying information of a ClusterProfile.
 type ClusterProfileReference struct {
 	// Name is the name of the ClusterProfile.
+	// It must be a valid RFC 1123 DNS subdomain.
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="must be a valid RFC 1123 DNS subdomain"
 	// +required
 	Name string `json:"name"`
 
 	// Namespace is the namespace of the ClusterProfile.
-	// If empty, the PlacementDecision's namespace is used.
+	// If unset, the PlacementDecision's namespace is used.
+	// When set, it must be a valid RFC 1123 DNS label.
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="!format.dns1123Label().validate(self).hasValue()",message="must be a valid RFC 1123 DNS label"
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 }
@@ -82,7 +88,6 @@ type PlacementDecision struct {
 
 	// Decisions is the list of clusters chosen for this placement decision.
 	// Up to 100 ClusterDecisions per object (slice) to stay well below the etcd limit.
-	// +kubebuilder:validation:MinItems=0
 	// +kubebuilder:validation:MaxItems=100
 	// +required
 	Decisions []ClusterDecision `json:"decisions"`

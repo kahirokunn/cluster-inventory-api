@@ -195,4 +195,25 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
+
+	ginkgo.It("keeps v1alpha1 PlacementDecision reference validation backward compatible", func() {
+		decisionName := fmt.Sprintf("decision-legacy-%s", rand.String(5))
+
+		_, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Create(
+			context.TODO(),
+			&cpv1alpha1.PlacementDecision{
+				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+				Decisions: []cpv1alpha1.ClusterDecision{
+					{
+						ClusterProfileRef: cpv1alpha1.ClusterProfileReference{
+							Name:      "Legacy_Name",
+							Namespace: "legacy.namespace",
+						},
+					},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
 })

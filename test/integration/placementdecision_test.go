@@ -19,6 +19,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -173,4 +174,78 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		gomega.Expect(err).To(gomega.HaveOccurred())
 		gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
 	})
+
+	ginkgo.It("Should accept a PlacementDecision with a dotted cluster profile name", func() {
+		placementDecision := &cpv1alpha2.PlacementDecision{
+			ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+			Decisions: []cpv1alpha2.ClusterDecision{
+				{
+					ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+						Name:      "cluster.example.com",
+						Namespace: "fleet-system",
+					},
+				},
+			},
+		}
+
+		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
+			context.TODO(),
+			placementDecision,
+			metav1.CreateOptions{},
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.DescribeTable("Should reject a PlacementDecision with an invalid cluster profile name",
+		func(invalidName string) {
+			placementDecision := &cpv1alpha2.PlacementDecision{
+				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+				Decisions: []cpv1alpha2.ClusterDecision{
+					{
+						ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+							Name: invalidName,
+						},
+					},
+				},
+			}
+
+			_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
+				context.TODO(),
+				placementDecision,
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		},
+		ginkgo.Entry("empty", ""),
+		ginkgo.Entry("uppercase", "Uppercase-Name"),
+		ginkgo.Entry("trailing dash", "trailing-dash-"),
+		ginkgo.Entry("254 characters", strings.Repeat("a", 254)),
+	)
+
+	ginkgo.DescribeTable("Should reject a PlacementDecision with an invalid cluster profile namespace",
+		func(invalidNamespace string) {
+			placementDecision := &cpv1alpha2.PlacementDecision{
+				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+				Decisions: []cpv1alpha2.ClusterDecision{
+					{
+						ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+							Name:      "cluster-1",
+							Namespace: invalidNamespace,
+						},
+					},
+				},
+			}
+
+			_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
+				context.TODO(),
+				placementDecision,
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		},
+		ginkgo.Entry("underscore", "Invalid_NS"),
+		ginkgo.Entry("dotted", "dotted.ns"),
+		ginkgo.Entry("64 characters", strings.Repeat("a", 64)),
+	)
+
 })

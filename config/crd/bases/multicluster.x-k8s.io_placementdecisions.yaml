@@ -126,13 +126,24 @@ spec:
                     The reference must point to a valid ClusterProfile in the fleet.
                   properties:
                     name:
-                      description: Name is the name of the ClusterProfile.
+                      description: |-
+                        Name is the name of the ClusterProfile.
+                        It must be a valid RFC 1123 DNS subdomain.
+                      maxLength: 253
                       type: string
+                      x-kubernetes-validations:
+                      - message: must be a valid RFC 1123 DNS subdomain
+                        rule: '!format.dns1123Subdomain().validate(self).hasValue()'
                     namespace:
                       description: |-
                         Namespace is the namespace of the ClusterProfile.
-                        If empty, the PlacementDecision's namespace is used.
+                        If unset, the PlacementDecision's namespace is used.
+                        When set, it must be a valid RFC 1123 DNS label.
+                      maxLength: 63
                       type: string
+                      x-kubernetes-validations:
+                      - message: must be a valid RFC 1123 DNS label
+                        rule: '!format.dns1123Label().validate(self).hasValue()'
                   required:
                   - name
                   type: object
@@ -145,7 +156,6 @@ spec:
               - clusterProfileRef
               type: object
             maxItems: 100
-            minItems: 0
             type: array
           kind:
             description: |-
