@@ -19,6 +19,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -62,13 +63,37 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 
-	ginkgo.It("Should reject a ClusterProfile with an empty cluster manager name", func() {
+	ginkgo.DescribeTable("Should reject a ClusterProfile with a cluster manager name that is not a valid label value",
+		func(invalidName string) {
+			clusterProfile := &cpv1alpha2.ClusterProfile{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+				Spec: cpv1alpha2.ClusterProfileSpec{
+					ClusterManager: cpv1alpha2.ClusterManager{
+						Name: invalidName,
+					},
+				},
+			}
+
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
+				context.TODO(),
+				clusterProfile,
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(apierrors.IsInvalid(err)).To(gomega.BeTrue())
+		},
+		ginkgo.Entry("empty name", ""),
+		ginkgo.Entry("leading dash", "-leading-dash"),
+		ginkgo.Entry("trailing dash", "trailing-dash-"),
+		ginkgo.Entry("slash", "slash/name"),
+		ginkgo.Entry("64 characters", strings.Repeat("a", 64)),
+	)
+
+	ginkgo.It("Should accept a ClusterProfile with a cluster manager name that is a valid label value", func() {
 		clusterProfile := &cpv1alpha2.ClusterProfile{
 			ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 			Spec: cpv1alpha2.ClusterProfileSpec{
-				DisplayName: clusterName,
 				ClusterManager: cpv1alpha2.ClusterManager{
-					Name: "",
+					Name: "Cluster_Manager-1.x",
 				},
 			},
 		}
@@ -78,7 +103,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			clusterProfile,
 			metav1.CreateOptions{},
 		)
-		gomega.Expect(apierrors.IsInvalid(err)).To(gomega.BeTrue())
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 
 	ginkgo.It("Should update the ClusterProfile status", func() {

@@ -395,9 +395,15 @@ spec:
                   ClusterProfile resource
                 properties:
                   name:
-                    description: Name defines the name of the cluster manager
+                    description: |-
+                      Name defines the name of the cluster manager.
+                      It must be a valid Kubernetes label value.
+                    maxLength: 63
                     minLength: 1
                     type: string
+                    x-kubernetes-validations:
+                    - message: must be a valid Kubernetes label value
+                      rule: '!format.labelValue().validate(self).hasValue()'
                 required:
                 - name
                 type: object

@@ -46,8 +46,11 @@ type ClusterProfileSpec struct {
 //
 // +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ClusterManager is immutable"
 type ClusterManager struct {
-	// Name defines the name of the cluster manager
+	// Name defines the name of the cluster manager.
+	// It must be a valid Kubernetes label value.
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="!format.labelValue().validate(self).hasValue()",message="must be a valid Kubernetes label value"
 	// +required
 	Name string `json:"name"`
 }
