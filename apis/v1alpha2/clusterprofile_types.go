@@ -228,7 +228,12 @@ const (
 //+genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Namespaced
+//+kubebuilder:resource:scope=Namespaced,categories=multicluster
+//+kubebuilder:printcolumn:name="Display Name",type=string,JSONPath=`.spec.displayName`
+//+kubebuilder:printcolumn:name="Manager",type=string,JSONPath=`.spec.clusterManager.name`
+//+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version.kubernetes`
+//+kubebuilder:printcolumn:name="Healthy",type=string,JSONPath=`.status.conditions[?(@.type=="ControlPlaneHealthy")].status`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // ClusterProfile represents a single cluster in a multi-cluster deployment.
 type ClusterProfile struct {

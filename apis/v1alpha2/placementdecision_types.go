@@ -72,7 +72,9 @@ type ClusterDecision struct {
 
 //+genclient
 //+kubebuilder:object:root=true
-//+kubebuilder:resource:scope=Namespaced
+//+kubebuilder:resource:scope=Namespaced,categories=multicluster
+//+kubebuilder:printcolumn:name="Scheduler",type=string,JSONPath=`.schedulerName`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // PlacementDecision publishes the set of clusters chosen by a scheduler at a point in time.
 // It is a data-only resource that acts as the interface between schedulers and consumers.

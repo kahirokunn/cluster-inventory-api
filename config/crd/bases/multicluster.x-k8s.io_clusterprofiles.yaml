@@ -8,6 +8,8 @@ metadata:
 spec:
   group: multicluster.x-k8s.io
   names:
+    categories:
+    - multicluster
     kind: ClusterProfile
     listKind: ClusterProfileList
     plural: clusterprofiles
@@ -364,7 +366,23 @@ spec:
     storage: true
     subresources:
       status: {}
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.displayName
+      name: Display Name
+      type: string
+    - jsonPath: .spec.clusterManager.name
+      name: Manager
+      type: string
+    - jsonPath: .status.version.kubernetes
+      name: Version
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="ControlPlaneHealthy")].status
+      name: Healthy
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: ClusterProfile represents a single cluster in a multi-cluster

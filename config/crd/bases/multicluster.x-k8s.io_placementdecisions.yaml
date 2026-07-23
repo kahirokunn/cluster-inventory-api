@@ -8,6 +8,8 @@ metadata:
 spec:
   group: multicluster.x-k8s.io
   names:
+    categories:
+    - multicluster
     kind: PlacementDecision
     listKind: PlacementDecisionList
     plural: placementdecisions
@@ -92,7 +94,14 @@ spec:
         type: object
     served: true
     storage: true
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .schedulerName
+      name: Scheduler
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: |-
@@ -177,3 +186,4 @@ spec:
         type: object
     served: true
     storage: false
+    subresources: {}
