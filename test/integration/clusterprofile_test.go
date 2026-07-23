@@ -24,10 +24,12 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/client-go/dynamic"
 
 	cpv1alpha2 "sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 )
@@ -79,7 +81,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 				clusterProfile,
 				metav1.CreateOptions{},
 			)
-			gomega.Expect(apierrors.IsInvalid(err)).To(gomega.BeTrue())
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
 		},
 		ginkgo.Entry("empty name", ""),
 		ginkgo.Entry("leading dash", "-leading-dash"),
@@ -143,5 +145,268 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			metav1.UpdateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.Context("access provider validation", func() {
+		var clusterProfile *cpv1alpha2.ClusterProfile
+
+		ginkgo.BeforeEach(func() {
+			var err error
+			clusterProfile, err = clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
+				context.TODO(),
+				&cpv1alpha2.ClusterProfile{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   clusterName,
+						Labels: map[string]string{cpv1alpha2.LabelClusterManagerKey: clusterManagerName},
+					},
+					Spec: cpv1alpha2.ClusterProfileSpec{
+						DisplayName: clusterName,
+						ClusterManager: cpv1alpha2.ClusterManager{
+							Name: clusterManagerName,
+						},
+					},
+				},
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("Should accept a valid access provider", func() {
+			newClusterProfile := clusterProfile.DeepCopy()
+			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
+				AccessProviders: []cpv1alpha2.AccessProvider{{
+					Name: "kubeconfig",
+					Cluster: cpv1alpha2.Cluster{
+						Server:                   "https://cluster.example.com:6443",
+						CertificateAuthorityData: []byte("ca-data"),
+						ProxyURL:                 "socks5://proxy.example.com:1080",
+						Extensions: []cpv1alpha2.NamedExtension{
+							{
+								Name: "client.authentication.k8s.io/exec",
+								Extension: runtime.RawExtension{
+									Raw: []byte(`{"audience":"cluster.example.com"}`),
+								},
+							},
+							{
+								Name: "example.com/metadata",
+								Extension: runtime.RawExtension{
+									Raw: []byte(`{"region":"us-east-1"}`),
+								},
+							},
+						},
+					},
+				}},
+			}
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+				context.TODO(),
+				newClusterProfile,
+				metav1.UpdateOptions{},
+			)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("Should reject duplicate cluster extension names", func() {
+			newClusterProfile := clusterProfile.DeepCopy()
+			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
+				AccessProviders: []cpv1alpha2.AccessProvider{{
+					Name: "kubeconfig",
+					Cluster: cpv1alpha2.Cluster{
+						Server: "https://cluster.example.com",
+						Extensions: []cpv1alpha2.NamedExtension{
+							{
+								Name: "client.authentication.k8s.io/exec",
+								Extension: runtime.RawExtension{
+									Raw: []byte(`{"audience":"first"}`),
+								},
+							},
+							{
+								Name: "client.authentication.k8s.io/exec",
+								Extension: runtime.RawExtension{
+									Raw: []byte(`{"audience":"second"}`),
+								},
+							},
+						},
+					},
+				}},
+			}
+
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+				context.TODO(),
+				newClusterProfile,
+				metav1.UpdateOptions{},
+			)
+
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		})
+
+		ginkgo.It("Should reject an access provider with an empty name", func() {
+			newClusterProfile := clusterProfile.DeepCopy()
+			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
+				AccessProviders: []cpv1alpha2.AccessProvider{{
+					Name:    "",
+					Cluster: cpv1alpha2.Cluster{Server: "https://cluster.example.com"},
+				}},
+			}
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+				context.TODO(),
+				newClusterProfile,
+				metav1.UpdateOptions{},
+			)
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		})
+
+		ginkgo.DescribeTable("Should reject an access provider whose server is not a URL with a host",
+			func(server string) {
+				newClusterProfile := clusterProfile.DeepCopy()
+				newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
+					AccessProviders: []cpv1alpha2.AccessProvider{{
+						Name:    "kubeconfig",
+						Cluster: cpv1alpha2.Cluster{Server: server},
+					}},
+				}
+				_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+					context.TODO(),
+					newClusterProfile,
+					metav1.UpdateOptions{},
+				)
+				gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+			},
+			ginkgo.Entry("empty", ""),
+			ginkgo.Entry("not a URL", "not-a-url"),
+			ginkgo.Entry("no host", "https://"),
+			ginkgo.Entry("path without a host", "https:///path"),
+		)
+
+		ginkgo.It("Should reject a certificate-authority file path as an unknown field", func() {
+			dynamicClient, err := dynamic.NewForConfig(cfg)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+			gvr := cpv1alpha2.ClusterProfileSchemeGroupVersionResource
+			current, err := dynamicClient.Resource(gvr).Namespace(testNamespace).Get(
+				context.TODO(), clusterName, metav1.GetOptions{})
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+			current.Object["status"] = map[string]interface{}{
+				"accessProviders": []interface{}{map[string]interface{}{
+					"name": "kubeconfig",
+					"cluster": map[string]interface{}{
+						"server":                "https://cluster.example.com",
+						"certificate-authority": "/etc/ca.crt",
+					},
+				}},
+			}
+			_, err = dynamicClient.Resource(gvr).Namespace(testNamespace).UpdateStatus(
+				context.TODO(),
+				current,
+				metav1.UpdateOptions{FieldValidation: metav1.FieldValidationStrict},
+			)
+			gomega.Expect(err).To(gomega.HaveOccurred())
+			gomega.Expect(err.Error()).To(gomega.ContainSubstring("certificate-authority"))
+		})
+
+		ginkgo.It("Should reject an access provider whose server exceeds 2048 characters", func() {
+			newClusterProfile := clusterProfile.DeepCopy()
+			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
+				AccessProviders: []cpv1alpha2.AccessProvider{{
+					Name: "kubeconfig",
+					Cluster: cpv1alpha2.Cluster{
+						Server: "https://cluster.example.com/" + strings.Repeat("a", 2048),
+					},
+				}},
+			}
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+				context.TODO(),
+				newClusterProfile,
+				metav1.UpdateOptions{},
+			)
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		})
+
+		ginkgo.It("Should accept 64 access providers", func() {
+			providers := make([]cpv1alpha2.AccessProvider, 0, 64)
+			for i := 0; i < 64; i++ {
+				providers = append(providers, cpv1alpha2.AccessProvider{
+					Name:    fmt.Sprintf("provider-%d", i),
+					Cluster: cpv1alpha2.Cluster{Server: "https://cluster.example.com"},
+				})
+			}
+			newClusterProfile := clusterProfile.DeepCopy()
+			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{AccessProviders: providers}
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+				context.TODO(),
+				newClusterProfile,
+				metav1.UpdateOptions{},
+			)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("Should reject 65 access providers", func() {
+			providers := make([]cpv1alpha2.AccessProvider, 0, 65)
+			for i := 0; i < 65; i++ {
+				providers = append(providers, cpv1alpha2.AccessProvider{
+					Name:    fmt.Sprintf("provider-%d", i),
+					Cluster: cpv1alpha2.Cluster{Server: "https://cluster.example.com"},
+				})
+			}
+			newClusterProfile := clusterProfile.DeepCopy()
+			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{AccessProviders: providers}
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+				context.TODO(),
+				newClusterProfile,
+				metav1.UpdateOptions{},
+			)
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		})
+
+		ginkgo.DescribeTable("Should reject an access provider with an invalid proxy-url",
+			func(proxyURL string) {
+				newClusterProfile := clusterProfile.DeepCopy()
+				newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
+					AccessProviders: []cpv1alpha2.AccessProvider{{
+						Name: "kubeconfig",
+						Cluster: cpv1alpha2.Cluster{
+							Server:   "https://cluster.example.com",
+							ProxyURL: proxyURL,
+						},
+					}},
+				}
+				_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
+					context.TODO(),
+					newClusterProfile,
+					metav1.UpdateOptions{},
+				)
+				gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+			},
+			ginkgo.Entry("unsupported scheme", "ftp://proxy.example.com"),
+			ginkgo.Entry("not a URL", "not-a-url"),
+			ginkgo.Entry("no host", "socks5://"),
+		)
+
+		ginkgo.It("Should accept an access provider with an explicit empty proxy-url", func() {
+			dynamicClient, err := dynamic.NewForConfig(cfg)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+			gvr := cpv1alpha2.ClusterProfileSchemeGroupVersionResource
+			current, err := dynamicClient.Resource(gvr).Namespace(testNamespace).Get(
+				context.TODO(), clusterName, metav1.GetOptions{})
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+			current.Object["status"] = map[string]interface{}{
+				"accessProviders": []interface{}{map[string]interface{}{
+					"name": "kubeconfig",
+					"cluster": map[string]interface{}{
+						"server":    "https://cluster.example.com",
+						"proxy-url": "",
+					},
+				}},
+			}
+			_, err = dynamicClient.Resource(gvr).Namespace(testNamespace).UpdateStatus(
+				context.TODO(),
+				current,
+				metav1.UpdateOptions{},
+			)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		})
+
 	})
 })

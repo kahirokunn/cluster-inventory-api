@@ -14,7 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientauthenticationv1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 	"sigs.k8s.io/cluster-inventory-api/pkg/access"
 	"sigs.k8s.io/yaml"
@@ -70,7 +69,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 			AccessProviders: []v1alpha2.AccessProvider{
 				{
 					Name: "provider1",
-					Cluster: clientcmdv1.Cluster{
+					Cluster: v1alpha2.Cluster{
 						Server:                   cfg.Host,
 						CertificateAuthorityData: cfg.CAData,
 					},

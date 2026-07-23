@@ -7,7 +7,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	clientcmdapiv1 "k8s.io/client-go/tools/clientcmd/api/v1"
 
 	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 	"sigs.k8s.io/cluster-inventory-api/pkg/access"
@@ -87,10 +86,10 @@ func main() {
 			AccessProviders: []v1alpha2.AccessProvider{
 				{
 					Name: "aks-workload-identity",
-					Cluster: clientcmdapiv1.Cluster{
+					Cluster: v1alpha2.Cluster{
 						Server:                   "https://example.cluster.hcp.eastus.azmk8s.io:443",
 						CertificateAuthorityData: []byte(""),
-						Extensions: []clientcmdapiv1.NamedExtension{
+						Extensions: []v1alpha2.NamedExtension{
 							{
 								Name: "clusterprofiles.multicluster.x-k8s.io/exec/additional-args",
 								Extension: runtime.RawExtension{

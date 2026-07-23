@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientauthenticationv1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 )
 
@@ -284,21 +283,21 @@ var _ = ginkgo.Describe("Config", func() {
 					AccessProviders: []v1alpha2.AccessProvider{
 						{
 							Name: "test-provider-1",
-							Cluster: clientcmdv1.Cluster{
+							Cluster: v1alpha2.Cluster{
 								Server:                   "https://test-server-1.com",
 								CertificateAuthorityData: []byte("test-ca-data-1"),
 							},
 						},
 						{
 							Name: "test-provider-2",
-							Cluster: clientcmdv1.Cluster{
+							Cluster: v1alpha2.Cluster{
 								Server:                   "https://test-server-2.com",
 								CertificateAuthorityData: []byte("test-ca-data-2"),
 							},
 						},
 						{
 							Name: "unsupported-provider",
-							Cluster: clientcmdv1.Cluster{
+							Cluster: v1alpha2.Cluster{
 								Server: "https://unsupported-server.com",
 							},
 						},
@@ -367,14 +366,14 @@ var _ = ginkgo.Describe("Config", func() {
 					AccessProviders: []v1alpha2.AccessProvider{
 						{
 							Name: "test-provider-1",
-							Cluster: clientcmdv1.Cluster{
+							Cluster: v1alpha2.Cluster{
 								Server:                   "https://test-server.com",
 								TLSServerName:            "tls.test-server.com",
 								InsecureSkipTLSVerify:    true,
 								CertificateAuthorityData: []byte("test-ca-data"),
 								ProxyURL:                 "http://proxy.example.com",
 								DisableCompression:       true,
-								Extensions: []clientcmdv1.NamedExtension{
+								Extensions: []v1alpha2.NamedExtension{
 									{
 										Name: clusterExecExtensionKey,
 										Extension: runtime.RawExtension{
@@ -421,6 +420,24 @@ var _ = ginkgo.Describe("Config", func() {
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(config).To(gomega.BeNil())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("no exec config found for provider"))
+		})
+
+		ginkgo.It("should return an error when cluster extension names are duplicated", func() {
+			duplicateExtension := clusterProfile.Status.AccessProviders[0].Cluster.Extensions[0]
+			duplicateExtension.Extension = *duplicateExtension.Extension.DeepCopy()
+			clusterProfile.Status.AccessProviders[0].Cluster.Extensions = append(
+				clusterProfile.Status.AccessProviders[0].Cluster.Extensions,
+				duplicateExtension,
+			)
+			execCP := New([]Provider{
+				{Name: "test-provider-1", ExecConfig: &clientcmdapi.ExecConfig{Command: "cmd"}},
+			})
+
+			config, err := execCP.BuildConfigFromCP(clusterProfile)
+
+			gomega.Expect(err).To(gomega.HaveOccurred())
+			gomega.Expect(config).To(gomega.BeNil())
+			gomega.Expect(err.Error()).To(gomega.ContainSubstring("duplicate name"))
 		})
 
 		ginkgo.It("should build config successfully (no additional CLI args/env vars)", func() {
@@ -470,6 +487,9 @@ var _ = ginkgo.Describe("Config", func() {
 			gomega.Expect(proxyURL.String()).To(gomega.Equal("http://proxy.example.com"))
 			gomega.Expect(config.ExecProvider.Command).To(gomega.Equal("cat"))
 			gomega.Expect(config.ExecProvider.Args).To(gomega.Equal([]string{testFile}))
+			execClusterConfig, ok := config.ExecProvider.Config.(*runtime.Unknown)
+			gomega.Expect(ok).To(gomega.BeTrue())
+			gomega.Expect(execClusterConfig.Raw).To(gomega.Equal([]byte("arbitrary-data")))
 
 			wantEnvVars := []clientcmdapi.ExecEnvVar{
 				{

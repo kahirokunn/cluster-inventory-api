@@ -23,6 +23,8 @@ one of these changes.
   to also populate `status.accessProviders` before switching consumers to
   `v1alpha2` or `pkg/access` from `v0.2.0`.
 
+- `v1alpha2` validates ClusterProfile data more strictly.
+
 - The PlacementDecision CRD now serves a new
   `multicluster.x-k8s.io/v1alpha2` API version.
 
@@ -78,6 +80,7 @@ version remains served and remains the storage version in v0.2.0, with
 status.credentialProviders retained there for compatibility. Consumers using
 pkg/access in v0.2.0 must pass v1alpha2 ClusterProfile objects and should ensure
 their cluster managers populate status.accessProviders before switching.
+The v1alpha2 API also validates ClusterProfile data more strictly.
 
 The PlacementDecision CRD also now serves multicluster.x-k8s.io/v1alpha2 with
 the same object shape as v1alpha1. The v1alpha1 API version remains served and

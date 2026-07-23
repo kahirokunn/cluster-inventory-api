@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 
-	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 	"sigs.k8s.io/cluster-inventory-api/pkg/access"
 )
@@ -28,7 +27,7 @@ func main() {
 			AccessProviders: []v1alpha2.AccessProvider{
 				{
 					Name: "gkeFleet",
-					Cluster: clientcmdv1.Cluster{
+					Cluster: v1alpha2.Cluster{
 						Server: "https://myserver.tld:443",
 					},
 				},

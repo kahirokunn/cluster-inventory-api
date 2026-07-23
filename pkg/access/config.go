@@ -187,8 +187,9 @@ func (c *Config) BuildConfigFromCP(clusterprofile *v1alpha2.ClusterProfile) (*re
 	}
 
 	// Propagate reserved extension into ExecCredential.Spec.Cluster.Config if present
+	clientcmdCluster := ToClientcmdCluster(clusterAccessor.Cluster)
 	internalCluster := clientcmdapi.NewCluster()
-	if err := clientcmdlatest.Scheme.Convert(&clusterAccessor.Cluster, internalCluster, nil); err != nil {
+	if err := clientcmdlatest.Scheme.Convert(&clientcmdCluster, internalCluster, nil); err != nil {
 		return nil, fmt.Errorf("failed to convert v1 Cluster to internal: %w", err)
 	}
 	if extData, ok := internalCluster.Extensions[clusterExecExtensionKey]; ok {
