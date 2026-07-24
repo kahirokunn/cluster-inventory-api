@@ -43,7 +43,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		clusterManagerName = fmt.Sprintf("cluster-manager-%s", rand.String(5))
 	})
 
-	ginkgo.It("Should create a ClusterProfile", func() {
+	ginkgo.It("Should create a ClusterProfile", func(ctx context.Context) {
 		clusterProfile := &cpv1alpha2.ClusterProfile{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   clusterName,
@@ -58,7 +58,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			clusterProfile,
 			metav1.CreateOptions{},
 		)
@@ -111,7 +111,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		},
 	)
 
-	ginkgo.It("Should update the ClusterProfile status", func() {
+	ginkgo.It("Should update the ClusterProfile status", func(ctx context.Context) {
 		clusterProfile := &cpv1alpha2.ClusterProfile{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   clusterName,
@@ -126,7 +126,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		}
 
 		clusterProfile, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			clusterProfile,
 			metav1.CreateOptions{},
 		)
@@ -143,7 +143,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		})
 
 		_, err = clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-			context.TODO(),
+			ctx,
 			newClusterProfile,
 			metav1.UpdateOptions{},
 		)

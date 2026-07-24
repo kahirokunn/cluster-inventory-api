@@ -24,7 +24,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 	var clusterManagerName string
 	var tempDir string
 
-	ginkgo.BeforeEach(func() {
+	ginkgo.BeforeEach(func(ctx context.Context) {
 		clusterName = fmt.Sprintf("cluster-%s", rand.String(5))
 		clusterManagerName = fmt.Sprintf("cluster-manager-%s", rand.String(5))
 
@@ -43,7 +43,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			clusterProfile,
 			metav1.CreateOptions{},
 		)
@@ -60,9 +60,9 @@ var _ = ginkgo.Describe("Access config test", func() {
 		}
 	})
 
-	ginkgo.It("Should get access config by cluster profile", func() {
+	ginkgo.It("Should get access config by cluster profile", func(ctx context.Context) {
 		cp, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Get(
-			context.TODO(), clusterName, metav1.GetOptions{})
+			ctx, clusterName, metav1.GetOptions{})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		cp.Status = v1alpha2.ClusterProfileStatus{
@@ -78,7 +78,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 		}
 
 		cp, err = clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-			context.TODO(),
+			ctx,
 			cp,
 			metav1.UpdateOptions{},
 		)
@@ -136,7 +136,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// test if the client can connect to the cluster
-		_, err = kubeClientFromCP.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+		_, err = kubeClientFromCP.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 })

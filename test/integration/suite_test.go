@@ -45,7 +45,7 @@ func TestIntegration(t *testing.T) {
 	ginkgo.RunSpecs(t, "API Validation Integration Suite")
 }
 
-var _ = ginkgo.BeforeSuite(func() {
+var _ = ginkgo.BeforeSuite(func(ctx context.Context) {
 	ginkgo.By("bootstrapping test environment")
 
 	// start a kube-apiserver
@@ -68,7 +68,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	testNamespace = "cluster-profile-api-test-" + rand.String(5)
 	_, err = kubernetesClient.CoreV1().Namespaces().
-		Create(context.TODO(), &corev1.Namespace{
+		Create(ctx, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testNamespace,
 			},
@@ -76,13 +76,13 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 })
 
-var _ = ginkgo.AfterSuite(func() {
+var _ = ginkgo.AfterSuite(func(ctx context.Context) {
 	ginkgo.By("tearing down the test environment")
 
 	// Skip if client wasn't instantiated
 	if kubernetesClient != nil {
 		err := kubernetesClient.CoreV1().Namespaces().
-			Delete(context.TODO(), testNamespace, metav1.DeleteOptions{})
+			Delete(ctx, testNamespace, metav1.DeleteOptions{})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		err = testEnv.Stop()
