@@ -49,7 +49,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to construct cluster-inventory client: %v", err)
 	}
-	cp, err := cic.ApisV1alpha1().ClusterProfiles(*namespace).Get(
+	cp, err := cic.ApisV1alpha2().ClusterProfiles(*namespace).Get(
 		context.Background(), *clusterProfileName, metav1.GetOptions{})
 	if err != nil {
 		log.Fatalf("failed to get ClusterProfile %s/%s: %v", *namespace, *clusterProfileName, err)

@@ -124,6 +124,9 @@ When a new CRD version is introduced:
 - Document supported upgrade paths in release notes or a dedicated versions
   document.
 
+Current API version upgrade and migration notes are documented in
+[api-versions.md](api-versions.md).
+
 Supported Kubernetes versions are documented separately by the project security
 policy and release notes.
 

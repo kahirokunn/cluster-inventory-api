@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,8 +67,6 @@ type ClusterDecision struct {
 //+genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:resource:scope=Namespaced
-//+kubebuilder:storageversion
-//+kubebuilder:deprecatedversion:warning="multicluster.x-k8s.io/v1alpha1 PlacementDecision is deprecated; use multicluster.x-k8s.io/v1alpha2"
 
 // PlacementDecision publishes the set of clusters chosen by a scheduler at a point in time.
 // It is a data-only resource that acts as the interface between schedulers and consumers.

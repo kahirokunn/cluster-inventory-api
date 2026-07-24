@@ -9,7 +9,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdapiv1 "k8s.io/client-go/tools/clientcmd/api/v1"
 
-	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha1"
+	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 	"sigs.k8s.io/cluster-inventory-api/pkg/access"
 )
 
@@ -72,19 +72,19 @@ func main() {
 		log.Fatalf("failed to marshal additional env vars")
 	}
 
-	profile := &v1alpha1.ClusterProfile{
+	profile := &v1alpha2.ClusterProfile{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bravelion",
 			Namespace: "fleet-system",
 		},
-		Spec: v1alpha1.ClusterProfileSpec{
+		Spec: v1alpha2.ClusterProfileSpec{
 			DisplayName: "bravelion",
-			ClusterManager: v1alpha1.ClusterManager{
+			ClusterManager: v1alpha2.ClusterManager{
 				Name: "kubefleet",
 			},
 		},
-		Status: v1alpha1.ClusterProfileStatus{
-			AccessProviders: []v1alpha1.AccessProvider{
+		Status: v1alpha2.ClusterProfileStatus{
+			AccessProviders: []v1alpha2.AccessProvider{
 				{
 					Name: "aks-workload-identity",
 					Cluster: clientcmdapiv1.Cluster{

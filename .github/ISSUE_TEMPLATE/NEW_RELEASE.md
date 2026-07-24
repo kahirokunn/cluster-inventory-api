@@ -10,6 +10,8 @@ labels: kind/release
 ### Prepare
 
 - [ ] Changelog added below
+- [ ] API migration notes copied from `docs/api-versions.md` when the release
+      changes CRD versions, CRD fields, or documented public Go APIs
 - [ ] 2-week lazy consensus period elapsed (no OWNER objections)
 
 ### Tag

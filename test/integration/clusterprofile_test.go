@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 
-	cpv1alpha1 "sigs.k8s.io/cluster-inventory-api/apis/v1alpha1"
+	cpv1alpha2 "sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 )
 
 var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
@@ -40,20 +40,20 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 	})
 
 	ginkgo.It("Should create a ClusterProfile", func() {
-		clusterProfile := &cpv1alpha1.ClusterProfile{
+		clusterProfile := &cpv1alpha2.ClusterProfile{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   clusterName,
-				Labels: map[string]string{cpv1alpha1.LabelClusterManagerKey: clusterManagerName},
+				Labels: map[string]string{cpv1alpha2.LabelClusterManagerKey: clusterManagerName},
 			},
-			Spec: cpv1alpha1.ClusterProfileSpec{
+			Spec: cpv1alpha2.ClusterProfileSpec{
 				DisplayName: clusterName,
-				ClusterManager: cpv1alpha1.ClusterManager{
+				ClusterManager: cpv1alpha2.ClusterManager{
 					Name: clusterManagerName,
 				},
 			},
 		}
 
-		_, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Create(
+		_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
 			context.TODO(),
 			clusterProfile,
 			metav1.CreateOptions{},
@@ -62,20 +62,20 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 	})
 
 	ginkgo.It("Should update the ClusterProfile status", func() {
-		clusterProfile := &cpv1alpha1.ClusterProfile{
+		clusterProfile := &cpv1alpha2.ClusterProfile{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   clusterName,
-				Labels: map[string]string{cpv1alpha1.LabelClusterManagerKey: clusterManagerName},
+				Labels: map[string]string{cpv1alpha2.LabelClusterManagerKey: clusterManagerName},
 			},
-			Spec: cpv1alpha1.ClusterProfileSpec{
+			Spec: cpv1alpha2.ClusterProfileSpec{
 				DisplayName: clusterName,
-				ClusterManager: cpv1alpha1.ClusterManager{
+				ClusterManager: cpv1alpha2.ClusterManager{
 					Name: clusterManagerName,
 				},
 			},
 		}
 
-		clusterProfile, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Create(
+		clusterProfile, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
 			context.TODO(),
 			clusterProfile,
 			metav1.CreateOptions{},
@@ -84,15 +84,15 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 
 		newClusterProfile := clusterProfile.DeepCopy()
 		newClusterProfile.Status.Version.Kubernetes = "1.29.0"
-		newClusterProfile.Status.Properties = []cpv1alpha1.Property{{Name: "n1", Value: "v1"}}
+		newClusterProfile.Status.Properties = []cpv1alpha2.Property{{Name: "n1", Value: "v1"}}
 		meta.SetStatusCondition(&newClusterProfile.Status.Conditions, metav1.Condition{
-			Type:    cpv1alpha1.ClusterConditionControlPlaneHealthy,
+			Type:    cpv1alpha2.ClusterConditionControlPlaneHealthy,
 			Status:  metav1.ConditionTrue,
 			Reason:  "Reason",
 			Message: "Message",
 		})
 
-		_, err = clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).UpdateStatus(
+		_, err = clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
 			context.TODO(),
 			newClusterProfile,
 			metav1.UpdateOptions{},

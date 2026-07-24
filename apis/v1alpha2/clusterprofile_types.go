@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,15 +75,6 @@ type ClusterProfileStatus struct {
 	// +listMapKey=name
 	Properties []Property `json:"properties,omitempty"`
 
-	// CredentialProviders is a list of cluster access providers that can provide access
-	// information for clusters.
-	// Deprecated: Use AccessProviders instead. This field is kept for v1alpha1 compatibility.
-	// +optional
-	// +deprecated
-	// +listType=map
-	// +listMapKey=name
-	CredentialProviders []CredentialProvider `json:"credentialProviders,omitempty"`
-
 	// AccessProviders is a list of cluster access providers that can provide access
 	// information for clusters.
 	// +optional
@@ -101,8 +92,6 @@ type AccessProvider struct {
 	Name    string              `json:"name"`
 	Cluster clientcmdv1.Cluster `json:"cluster,omitempty"`
 }
-
-type CredentialProvider = AccessProvider
 
 // ClusterVersion represents version information about the cluster.
 type ClusterVersion struct {
@@ -166,8 +155,6 @@ const (
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Namespaced
-//+kubebuilder:storageversion
-//+kubebuilder:deprecatedversion:warning="multicluster.x-k8s.io/v1alpha1 ClusterProfile is deprecated; use multicluster.x-k8s.io/v1alpha2"
 
 // ClusterProfile represents a single cluster in a multi-cluster deployment.
 type ClusterProfile struct {

@@ -33,7 +33,7 @@ import (
 	clientauthenticationv1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
-	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha1"
+	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 )
 
 const providerLocalEnvVarDefault = "None"
@@ -273,15 +273,15 @@ var _ = ginkgo.Describe("Config", func() {
 	})
 
 	ginkgo.Describe("getProviderFromClusterProfile", func() {
-		var clusterProfile *v1alpha1.ClusterProfile
+		var clusterProfile *v1alpha2.ClusterProfile
 
 		ginkgo.BeforeEach(func() {
-			clusterProfile = &v1alpha1.ClusterProfile{
+			clusterProfile = &v1alpha2.ClusterProfile{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cluster",
 				},
-				Status: v1alpha1.ClusterProfileStatus{
-					AccessProviders: []v1alpha1.AccessProvider{
+				Status: v1alpha2.ClusterProfileStatus{
+					AccessProviders: []v1alpha2.AccessProvider{
 						{
 							Name: "test-provider-1",
 							Cluster: clientcmdv1.Cluster{
@@ -324,9 +324,9 @@ var _ = ginkgo.Describe("Config", func() {
 		})
 
 		ginkgo.It("should handle ClusterProfile with no access providers", func() {
-			emptyClusterProfile := &v1alpha1.ClusterProfile{
+			emptyClusterProfile := &v1alpha2.ClusterProfile{
 				ObjectMeta: metav1.ObjectMeta{Name: "empty-cluster"},
-				Status:     v1alpha1.ClusterProfileStatus{},
+				Status:     v1alpha2.ClusterProfileStatus{},
 			}
 			provider := cfg.getClusterAccessorFromClusterProfile(emptyClusterProfile)
 			gomega.Expect(provider).To(gomega.BeNil())
@@ -347,7 +347,7 @@ var _ = ginkgo.Describe("Config", func() {
 	})
 
 	ginkgo.Describe("BuildConfigFromCP", func() {
-		var clusterProfile *v1alpha1.ClusterProfile
+		var clusterProfile *v1alpha2.ClusterProfile
 
 		additionalCLIArgsData, _ := yaml.Marshal([]string{"--audience", "audience"})
 		additionalEnvVarName1 := "CLIENT_ID"
@@ -359,12 +359,12 @@ var _ = ginkgo.Describe("Config", func() {
 			additionalEnvVarName2: additionalEnvVarVal2,
 		})
 		ginkgo.BeforeEach(func() {
-			clusterProfile = &v1alpha1.ClusterProfile{
+			clusterProfile = &v1alpha2.ClusterProfile{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cluster",
 				},
-				Status: v1alpha1.ClusterProfileStatus{
-					AccessProviders: []v1alpha1.AccessProvider{
+				Status: v1alpha2.ClusterProfileStatus{
+					AccessProviders: []v1alpha2.AccessProvider{
 						{
 							Name: "test-provider-1",
 							Cluster: clientcmdv1.Cluster{
