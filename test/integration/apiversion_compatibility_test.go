@@ -162,11 +162,11 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		gomega.Expect(gotV1Alpha1.Decisions[0].ClusterProfileRef.Name).To(gomega.Equal("cluster-1"))
 	})
 
-	ginkgo.It("keeps v1alpha1 ClusterProfile validation backward compatible", func() {
+	ginkgo.It("keeps v1alpha1 ClusterProfile validation backward compatible", func(ctx context.Context) {
 		clusterName := fmt.Sprintf("cluster-legacy-%s", rand.String(5))
 
 		clusterProfile, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			&cpv1alpha1.ClusterProfile{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: cpv1alpha1.ClusterProfileSpec{
@@ -189,18 +189,18 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		}
 
 		_, err = clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).UpdateStatus(
-			context.TODO(),
+			ctx,
 			updated,
 			metav1.UpdateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 
-	ginkgo.It("keeps v1alpha1 PlacementDecision reference validation backward compatible", func() {
+	ginkgo.It("keeps v1alpha1 PlacementDecision reference validation backward compatible", func(ctx context.Context) {
 		decisionName := fmt.Sprintf("decision-legacy-%s", rand.String(5))
 
 		_, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			&cpv1alpha1.PlacementDecision{
 				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
 				Decisions: []cpv1alpha1.ClusterDecision{

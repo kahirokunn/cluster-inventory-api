@@ -175,7 +175,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
 	})
 
-	ginkgo.It("Should accept a PlacementDecision with a dotted cluster profile name", func() {
+	ginkgo.It("Should accept a PlacementDecision with a dotted cluster profile name", func(ctx context.Context) {
 		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{Name: decisionName},
 			Decisions: []cpv1alpha2.ClusterDecision{
@@ -189,7 +189,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			placementDecision,
 			metav1.CreateOptions{},
 		)
@@ -197,7 +197,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 	})
 
 	ginkgo.DescribeTable("Should reject a PlacementDecision with an invalid cluster profile name",
-		func(invalidName string) {
+		func(ctx context.Context, invalidName string) {
 			placementDecision := &cpv1alpha2.PlacementDecision{
 				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
 				Decisions: []cpv1alpha2.ClusterDecision{
@@ -210,7 +210,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 			}
 
 			_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-				context.TODO(),
+				ctx,
 				placementDecision,
 				metav1.CreateOptions{},
 			)
@@ -223,7 +223,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 	)
 
 	ginkgo.DescribeTable("Should reject a PlacementDecision with an invalid cluster profile namespace",
-		func(invalidNamespace string) {
+		func(ctx context.Context, invalidNamespace string) {
 			placementDecision := &cpv1alpha2.PlacementDecision{
 				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
 				Decisions: []cpv1alpha2.ClusterDecision{
@@ -237,7 +237,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 			}
 
 			_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-				context.TODO(),
+				ctx,
 				placementDecision,
 				metav1.CreateOptions{},
 			)

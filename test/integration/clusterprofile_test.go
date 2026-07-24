@@ -66,7 +66,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 	})
 
 	ginkgo.DescribeTable("Should reject a ClusterProfile with a cluster manager name that is not a valid label value",
-		func(invalidName string) {
+		func(ctx context.Context, invalidName string) {
 			clusterProfile := &cpv1alpha2.ClusterProfile{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: cpv1alpha2.ClusterProfileSpec{
@@ -77,7 +77,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			}
 
 			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-				context.TODO(),
+				ctx,
 				clusterProfile,
 				metav1.CreateOptions{},
 			)
@@ -90,23 +90,26 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		ginkgo.Entry("64 characters", strings.Repeat("a", 64)),
 	)
 
-	ginkgo.It("Should accept a ClusterProfile with a cluster manager name that is a valid label value", func() {
-		clusterProfile := &cpv1alpha2.ClusterProfile{
-			ObjectMeta: metav1.ObjectMeta{Name: clusterName},
-			Spec: cpv1alpha2.ClusterProfileSpec{
-				ClusterManager: cpv1alpha2.ClusterManager{
-					Name: "Cluster_Manager-1.x",
+	ginkgo.It(
+		"Should accept a ClusterProfile with a cluster manager name that is a valid label value",
+		func(ctx context.Context) {
+			clusterProfile := &cpv1alpha2.ClusterProfile{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+				Spec: cpv1alpha2.ClusterProfileSpec{
+					ClusterManager: cpv1alpha2.ClusterManager{
+						Name: "Cluster_Manager-1.x",
+					},
 				},
-			},
-		}
+			}
 
-		_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
-			clusterProfile,
-			metav1.CreateOptions{},
-		)
-		gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	})
+			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
+				ctx,
+				clusterProfile,
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		},
+	)
 
 	ginkgo.It("Should update the ClusterProfile status", func() {
 		clusterProfile := &cpv1alpha2.ClusterProfile{
@@ -150,10 +153,10 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 	ginkgo.Context("access provider validation", func() {
 		var clusterProfile *cpv1alpha2.ClusterProfile
 
-		ginkgo.BeforeEach(func() {
+		ginkgo.BeforeEach(func(ctx context.Context) {
 			var err error
 			clusterProfile, err = clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-				context.TODO(),
+				ctx,
 				&cpv1alpha2.ClusterProfile{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   clusterName,
@@ -171,7 +174,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 
-		ginkgo.It("Should accept a valid access provider", func() {
+		ginkgo.It("Should accept a valid access provider", func(ctx context.Context) {
 			newClusterProfile := clusterProfile.DeepCopy()
 			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
 				AccessProviders: []cpv1alpha2.AccessProvider{{
@@ -198,14 +201,14 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 				}},
 			}
 			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				newClusterProfile,
 				metav1.UpdateOptions{},
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 
-		ginkgo.It("Should reject duplicate cluster extension names", func() {
+		ginkgo.It("Should reject duplicate cluster extension names", func(ctx context.Context) {
 			newClusterProfile := clusterProfile.DeepCopy()
 			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
 				AccessProviders: []cpv1alpha2.AccessProvider{{
@@ -231,7 +234,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			}
 
 			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				newClusterProfile,
 				metav1.UpdateOptions{},
 			)
@@ -239,7 +242,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
 		})
 
-		ginkgo.It("Should reject an access provider with an empty name", func() {
+		ginkgo.It("Should reject an access provider with an empty name", func(ctx context.Context) {
 			newClusterProfile := clusterProfile.DeepCopy()
 			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
 				AccessProviders: []cpv1alpha2.AccessProvider{{
@@ -248,7 +251,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 				}},
 			}
 			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				newClusterProfile,
 				metav1.UpdateOptions{},
 			)
@@ -256,7 +259,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		})
 
 		ginkgo.DescribeTable("Should reject an access provider whose server is not a URL with a host",
-			func(server string) {
+			func(ctx context.Context, server string) {
 				newClusterProfile := clusterProfile.DeepCopy()
 				newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
 					AccessProviders: []cpv1alpha2.AccessProvider{{
@@ -265,7 +268,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 					}},
 				}
 				_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-					context.TODO(),
+					ctx,
 					newClusterProfile,
 					metav1.UpdateOptions{},
 				)
@@ -277,13 +280,13 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			ginkgo.Entry("path without a host", "https:///path"),
 		)
 
-		ginkgo.It("Should reject a certificate-authority file path as an unknown field", func() {
+		ginkgo.It("Should reject a certificate-authority file path as an unknown field", func(ctx context.Context) {
 			dynamicClient, err := dynamic.NewForConfig(cfg)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 			gvr := cpv1alpha2.ClusterProfileSchemeGroupVersionResource
 			current, err := dynamicClient.Resource(gvr).Namespace(testNamespace).Get(
-				context.TODO(), clusterName, metav1.GetOptions{})
+				ctx, clusterName, metav1.GetOptions{})
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 			current.Object["status"] = map[string]interface{}{
@@ -296,7 +299,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 				}},
 			}
 			_, err = dynamicClient.Resource(gvr).Namespace(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				current,
 				metav1.UpdateOptions{FieldValidation: metav1.FieldValidationStrict},
 			)
@@ -304,7 +307,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("certificate-authority"))
 		})
 
-		ginkgo.It("Should reject an access provider whose server exceeds 2048 characters", func() {
+		ginkgo.It("Should reject an access provider whose server exceeds 2048 characters", func(ctx context.Context) {
 			newClusterProfile := clusterProfile.DeepCopy()
 			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
 				AccessProviders: []cpv1alpha2.AccessProvider{{
@@ -315,14 +318,14 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 				}},
 			}
 			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				newClusterProfile,
 				metav1.UpdateOptions{},
 			)
 			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
 		})
 
-		ginkgo.It("Should accept 64 access providers", func() {
+		ginkgo.It("Should accept 64 access providers", func(ctx context.Context) {
 			providers := make([]cpv1alpha2.AccessProvider, 0, 64)
 			for i := 0; i < 64; i++ {
 				providers = append(providers, cpv1alpha2.AccessProvider{
@@ -333,14 +336,14 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			newClusterProfile := clusterProfile.DeepCopy()
 			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{AccessProviders: providers}
 			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				newClusterProfile,
 				metav1.UpdateOptions{},
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 
-		ginkgo.It("Should reject 65 access providers", func() {
+		ginkgo.It("Should reject 65 access providers", func(ctx context.Context) {
 			providers := make([]cpv1alpha2.AccessProvider, 0, 65)
 			for i := 0; i < 65; i++ {
 				providers = append(providers, cpv1alpha2.AccessProvider{
@@ -351,7 +354,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			newClusterProfile := clusterProfile.DeepCopy()
 			newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{AccessProviders: providers}
 			_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				newClusterProfile,
 				metav1.UpdateOptions{},
 			)
@@ -359,7 +362,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 		})
 
 		ginkgo.DescribeTable("Should reject an access provider with an invalid proxy-url",
-			func(proxyURL string) {
+			func(ctx context.Context, proxyURL string) {
 				newClusterProfile := clusterProfile.DeepCopy()
 				newClusterProfile.Status = cpv1alpha2.ClusterProfileStatus{
 					AccessProviders: []cpv1alpha2.AccessProvider{{
@@ -371,7 +374,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 					}},
 				}
 				_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-					context.TODO(),
+					ctx,
 					newClusterProfile,
 					metav1.UpdateOptions{},
 				)
@@ -382,13 +385,13 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 			ginkgo.Entry("no host", "socks5://"),
 		)
 
-		ginkgo.It("Should accept an access provider with an explicit empty proxy-url", func() {
+		ginkgo.It("Should accept an access provider with an explicit empty proxy-url", func(ctx context.Context) {
 			dynamicClient, err := dynamic.NewForConfig(cfg)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 			gvr := cpv1alpha2.ClusterProfileSchemeGroupVersionResource
 			current, err := dynamicClient.Resource(gvr).Namespace(testNamespace).Get(
-				context.TODO(), clusterName, metav1.GetOptions{})
+				ctx, clusterName, metav1.GetOptions{})
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 			current.Object["status"] = map[string]interface{}{
@@ -401,7 +404,7 @@ var _ = ginkgo.Describe("ClusterProfileAPI test", func() {
 				}},
 			}
 			_, err = dynamicClient.Resource(gvr).Namespace(testNamespace).UpdateStatus(
-				context.TODO(),
+				ctx,
 				current,
 				metav1.UpdateOptions{},
 			)
