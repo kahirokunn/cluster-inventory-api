@@ -8,6 +8,8 @@ metadata:
 spec:
   group: multicluster.x-k8s.io
   names:
+    categories:
+    - multicluster
     kind: ClusterProfile
     listKind: ClusterProfileList
     plural: clusterprofiles
@@ -364,7 +366,23 @@ spec:
     storage: true
     subresources:
       status: {}
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .spec.displayName
+      name: Display Name
+      type: string
+    - jsonPath: .spec.clusterManager.name
+      name: Manager
+      type: string
+    - jsonPath: .status.version.kubernetes
+      name: Version
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="ControlPlaneHealthy")].status
+      name: Healthy
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: ClusterProfile represents a single cluster in a multi-cluster
@@ -395,8 +413,15 @@ spec:
                   ClusterProfile resource
                 properties:
                   name:
-                    description: Name defines the name of the cluster manager
+                    description: |-
+                      Name defines the name of the cluster manager.
+                      It must be a valid Kubernetes label value.
+                    maxLength: 63
+                    minLength: 1
                     type: string
+                    x-kubernetes-validations:
+                    - message: must be a valid Kubernetes label value
+                      rule: '!format.labelValue().validate(self).hasValue()'
                 required:
                 - name
                 type: object
@@ -417,86 +442,104 @@ spec:
                   AccessProviders is a list of cluster access providers that can provide access
                   information for clusters.
                 items:
-                  description: |-
-                    AccessProvider defines how to access the cluster.
-                    It contains the name of the provider name and the cluster connection details.
-                    The name is used to identify different access info types, such as "kubeconfig" or "oidc".
-                    The Cluster field contains the actual cluster connection details, such as server address,
-                    certificate authority data, and authentication information.
+                  description: AccessProvider describes one way a consumer can connect
+                    to the cluster.
                   properties:
                     cluster:
-                      description: Cluster contains information about how to communicate
-                        with a kubernetes cluster
+                      description: |-
+                        Cluster contains the cluster connection details, such as the server
+                        address and certificate authority data.
                       properties:
-                        certificate-authority:
-                          description: CertificateAuthority is the path to a cert
-                            file for the certificate authority.
-                          type: string
                         certificate-authority-data:
-                          description: CertificateAuthorityData contains PEM-encoded
-                            certificate authority certificates. Overrides CertificateAuthority
+                          description: |-
+                            CertificateAuthorityData contains PEM-encoded CA certificate bytes.
+                            In YAML or JSON, these bytes must be base64-encoded.
                           format: byte
                           type: string
                         disable-compression:
                           description: |-
-                            DisableCompression allows client to opt-out of response compression for all requests to the server. This is useful
-                            to speed up requests (specifically lists) when client-server network bandwidth is ample, by saving time on
-                            compression (server-side) and decompression (client-side): https://github.com/kubernetes/kubernetes/issues/112296.
+                            DisableCompression disables response compression for requests to the
+                            cluster. This can reduce CPU usage when network bandwidth is sufficient.
                           type: boolean
                         extensions:
-                          description: Extensions holds additional information. This
-                            is useful for extenders so that reads and writes don't
-                            clobber unknown fields
+                          description: |-
+                            Extensions contains provider-specific cluster configuration. For example,
+                            an extension named "client.authentication.k8s.io/exec" supplies
+                            configuration to an exec credential plugin.
                           items:
-                            description: NamedExtension relates nicknames to extension
-                              information
+                            description: NamedExtension associates a name with provider-specific
+                              configuration.
                             properties:
                               extension:
-                                description: Extension holds the extension information
+                                description: Extension contains the provider-specific
+                                  configuration.
                                 type: object
                                 x-kubernetes-preserve-unknown-fields: true
                               name:
-                                description: Name is the nickname for this Extension
+                                description: |-
+                                  Name identifies the extension, for example,
+                                  "client.authentication.k8s.io/exec".
+                                maxLength: 253
+                                minLength: 1
                                 type: string
                             required:
                             - extension
                             - name
                             type: object
                           type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
                         insecure-skip-tls-verify:
-                          description: InsecureSkipTLSVerify skips the validity check
-                            for the server's certificate. This will make your HTTPS
-                            connections insecure.
+                          description: |-
+                            InsecureSkipTLSVerify disables server certificate verification.
+                            Enabling this field makes HTTPS connections insecure.
                           type: boolean
                         proxy-url:
                           description: |-
-                            ProxyURL is the URL to the proxy to be used for all requests made by this
-                            client. URLs with "http", "https", and "socks5" schemes are supported.  If
-                            this configuration is not provided or the empty string, the client
-                            attempts to construct a proxy configuration from http_proxy and
-                            https_proxy environment variables. If these environment variables are not
-                            set, the client does not attempt to proxy requests.
+                            ProxyURL is the proxy URL used for requests to the cluster. Supported
+                            schemes are "http", "https", and "socks5". If empty, the ClusterProfile
+                            does not specify a proxy.
 
-                            socks5 proxying does not currently support spdy streaming endpoints (exec,
-                            attach, port forward).
+                            SOCKS5 proxying does not support SPDY streaming endpoints such as exec,
+                            attach, and port-forward.
+                          maxLength: 2048
                           type: string
+                          x-kubernetes-validations:
+                          - message: proxy-url must be a valid URL with scheme http,
+                              https, or socks5 and a host
+                            rule: self == '' || (isURL(self) && url(self).getScheme()
+                              in ['http', 'https', 'socks5'] && url(self).getHost()
+                              != '')
                         server:
-                          description: Server is the address of the kubernetes cluster
-                            (https://hostname:port).
+                          description: |-
+                            Server is the URL of the Kubernetes API server, for example,
+                            "https://api.example.com:6443".
+                          maxLength: 2048
                           type: string
+                          x-kubernetes-validations:
+                          - message: server must be a valid absolute URL with a host
+                            rule: isURL(self) && url(self).getHost() != ''
                         tls-server-name:
-                          description: TLSServerName is used to check server certificate.
-                            If TLSServerName is empty, the hostname used to contact
-                            the server is used.
+                          description: |-
+                            TLSServerName is the server name used to verify the server certificate.
+                            If empty, the hostname in Server is used.
+                          maxLength: 253
                           type: string
                       required:
                       - server
                       type: object
                     name:
+                      description: Name matches one of the consumer's configured access
+                        provider names.
+                      maxLength: 253
+                      minLength: 1
                       type: string
                   required:
+                  - cluster
                   - name
                   type: object
+                maxItems: 64
                 type: array
                 x-kubernetes-list-map-keys:
                 - name

@@ -32,7 +32,7 @@ import (
 )
 
 var _ = ginkgo.Describe("API version compatibility", func() {
-	ginkgo.It("serves the same ClusterProfile through v1alpha1 and v1alpha2", func() {
+	ginkgo.It("serves the same ClusterProfile through v1alpha1 and v1alpha2", func(ctx context.Context) {
 		clusterName := fmt.Sprintf("cluster-compat-%s", rand.String(5))
 		clusterManagerName := fmt.Sprintf("cluster-manager-%s", rand.String(5))
 
@@ -52,7 +52,7 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		}
 
 		clusterProfile, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			clusterProfile,
 			metav1.CreateOptions{},
 		)
@@ -77,14 +77,14 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		}
 
 		_, err = clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).UpdateStatus(
-			context.TODO(),
+			ctx,
 			updated,
 			metav1.UpdateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		gotV1Alpha2, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Get(
-			context.TODO(),
+			ctx,
 			clusterName,
 			metav1.GetOptions{},
 		)
@@ -93,7 +93,7 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		gomega.Expect(gotV1Alpha2.Status.AccessProviders[0].Name).To(gomega.Equal("access"))
 	})
 
-	ginkgo.It("serves the same v1alpha2 ClusterProfile through v1alpha1", func() {
+	ginkgo.It("serves the same v1alpha2 ClusterProfile through v1alpha1", func(ctx context.Context) {
 		clusterName := fmt.Sprintf("cluster-v1alpha2-%s", rand.String(5))
 		clusterManagerName := fmt.Sprintf("cluster-manager-%s", rand.String(5))
 
@@ -113,14 +113,14 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			clusterProfile,
 			metav1.CreateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		gotV1Alpha1, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Get(
-			context.TODO(),
+			ctx,
 			clusterName,
 			metav1.GetOptions{},
 		)
@@ -129,7 +129,7 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		gomega.Expect(gotV1Alpha1.Status.CredentialProviders).To(gomega.BeEmpty())
 	})
 
-	ginkgo.It("serves the same PlacementDecision through v1alpha1 and v1alpha2", func() {
+	ginkgo.It("serves the same PlacementDecision through v1alpha1 and v1alpha2", func(ctx context.Context) {
 		decisionName := fmt.Sprintf("decision-compat-%s", rand.String(5))
 
 		placementDecision := &cpv1alpha2.PlacementDecision{
@@ -146,19 +146,74 @@ var _ = ginkgo.Describe("API version compatibility", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			placementDecision,
 			metav1.CreateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		gotV1Alpha1, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Get(
-			context.TODO(),
+			ctx,
 			decisionName,
 			metav1.GetOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		gomega.Expect(gotV1Alpha1.Decisions).To(gomega.HaveLen(1))
 		gomega.Expect(gotV1Alpha1.Decisions[0].ClusterProfileRef.Name).To(gomega.Equal("cluster-1"))
+	})
+
+	ginkgo.It("keeps v1alpha1 ClusterProfile validation backward compatible", func(ctx context.Context) {
+		clusterName := fmt.Sprintf("cluster-legacy-%s", rand.String(5))
+
+		clusterProfile, err := clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).Create(
+			ctx,
+			&cpv1alpha1.ClusterProfile{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+				Spec: cpv1alpha1.ClusterProfileSpec{
+					ClusterManager: cpv1alpha1.ClusterManager{Name: "-legacy-manager"},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		updated := clusterProfile.DeepCopy()
+		updated.Status.AccessProviders = []cpv1alpha1.AccessProvider{
+			{
+				Name: "",
+				Cluster: clientcmdv1.Cluster{
+					Server:               "not-a-url",
+					CertificateAuthority: "/etc/legacy-ca.crt",
+				},
+			},
+		}
+
+		_, err = clusterProfileClient.ApisV1alpha1().ClusterProfiles(testNamespace).UpdateStatus(
+			ctx,
+			updated,
+			metav1.UpdateOptions{},
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("keeps v1alpha1 PlacementDecision reference validation backward compatible", func(ctx context.Context) {
+		decisionName := fmt.Sprintf("decision-legacy-%s", rand.String(5))
+
+		_, err := clusterProfileClient.ApisV1alpha1().PlacementDecisions(testNamespace).Create(
+			ctx,
+			&cpv1alpha1.PlacementDecision{
+				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+				Decisions: []cpv1alpha1.ClusterDecision{
+					{
+						ClusterProfileRef: cpv1alpha1.ClusterProfileReference{
+							Name:      "Legacy_Name",
+							Namespace: "legacy.namespace",
+						},
+					},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 })

@@ -19,6 +19,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -37,7 +38,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		decisionName = fmt.Sprintf("decision-%s", rand.String(5))
 	})
 
-	ginkgo.It("Should create a PlacementDecision", func() {
+	ginkgo.It("Should create a PlacementDecision", func(ctx context.Context) {
 		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: decisionName,
@@ -63,14 +64,14 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			placementDecision,
 			metav1.CreateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 
-	ginkgo.It("Should update a PlacementDecision", func() {
+	ginkgo.It("Should update a PlacementDecision", func(ctx context.Context) {
 		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: decisionName,
@@ -86,7 +87,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		}
 
 		placementDecision, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			placementDecision,
 			metav1.CreateOptions{},
 		)
@@ -102,14 +103,14 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		updated.SchedulerName = "scheduler-v2"
 
 		_, err = clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Update(
-			context.TODO(),
+			ctx,
 			updated,
 			metav1.UpdateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		got, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Get(
-			context.TODO(),
+			ctx,
 			decisionName,
 			metav1.GetOptions{},
 		)
@@ -118,7 +119,7 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		gomega.Expect(got.SchedulerName).To(gomega.Equal("scheduler-v2"))
 	})
 
-	ginkgo.It("Should delete a PlacementDecision", func() {
+	ginkgo.It("Should delete a PlacementDecision", func(ctx context.Context) {
 		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: decisionName,
@@ -127,28 +128,28 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			placementDecision,
 			metav1.CreateOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		err = clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Delete(
-			context.TODO(),
+			ctx,
 			decisionName,
 			metav1.DeleteOptions{},
 		)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		_, err = clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Get(
-			context.TODO(),
+			ctx,
 			decisionName,
 			metav1.GetOptions{},
 		)
 		gomega.Expect(errors.IsNotFound(err)).To(gomega.BeTrue())
 	})
 
-	ginkgo.It("Should reject a PlacementDecision exceeding 100 decisions", func() {
+	ginkgo.It("Should reject a PlacementDecision exceeding 100 decisions", func(ctx context.Context) {
 		decisions := make([]cpv1alpha2.ClusterDecision, 101)
 		for i := range decisions {
 			decisions[i] = cpv1alpha2.ClusterDecision{
@@ -166,11 +167,85 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			placementDecision,
 			metav1.CreateOptions{},
 		)
 		gomega.Expect(err).To(gomega.HaveOccurred())
 		gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
 	})
+
+	ginkgo.It("Should accept a PlacementDecision with a dotted cluster profile name", func(ctx context.Context) {
+		placementDecision := &cpv1alpha2.PlacementDecision{
+			ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+			Decisions: []cpv1alpha2.ClusterDecision{
+				{
+					ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+						Name:      "cluster.example.com",
+						Namespace: "fleet-system",
+					},
+				},
+			},
+		}
+
+		_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
+			ctx,
+			placementDecision,
+			metav1.CreateOptions{},
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.DescribeTable("Should reject a PlacementDecision with an invalid cluster profile name",
+		func(ctx context.Context, invalidName string) {
+			placementDecision := &cpv1alpha2.PlacementDecision{
+				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+				Decisions: []cpv1alpha2.ClusterDecision{
+					{
+						ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+							Name: invalidName,
+						},
+					},
+				},
+			}
+
+			_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
+				ctx,
+				placementDecision,
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		},
+		ginkgo.Entry("empty", ""),
+		ginkgo.Entry("uppercase", "Uppercase-Name"),
+		ginkgo.Entry("trailing dash", "trailing-dash-"),
+		ginkgo.Entry("254 characters", strings.Repeat("a", 254)),
+	)
+
+	ginkgo.DescribeTable("Should reject a PlacementDecision with an invalid cluster profile namespace",
+		func(ctx context.Context, invalidNamespace string) {
+			placementDecision := &cpv1alpha2.PlacementDecision{
+				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+				Decisions: []cpv1alpha2.ClusterDecision{
+					{
+						ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+							Name:      "cluster-1",
+							Namespace: invalidNamespace,
+						},
+					},
+				},
+			}
+
+			_, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
+				ctx,
+				placementDecision,
+				metav1.CreateOptions{},
+			)
+			gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+		},
+		ginkgo.Entry("underscore", "Invalid_NS"),
+		ginkgo.Entry("dotted", "dotted.ns"),
+		ginkgo.Entry("64 characters", strings.Repeat("a", 64)),
+	)
+
 })

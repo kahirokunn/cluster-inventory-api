@@ -165,7 +165,7 @@ const (
 //+genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Namespaced
+//+kubebuilder:resource:scope=Namespaced,categories=multicluster
 //+kubebuilder:storageversion
 //+kubebuilder:deprecatedversion:warning="multicluster.x-k8s.io/v1alpha1 ClusterProfile is deprecated; use multicluster.x-k8s.io/v1alpha2"
 

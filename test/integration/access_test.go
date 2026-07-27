@@ -14,7 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientauthenticationv1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/cluster-inventory-api/apis/v1alpha2"
 	"sigs.k8s.io/cluster-inventory-api/pkg/access"
 	"sigs.k8s.io/yaml"
@@ -25,7 +24,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 	var clusterManagerName string
 	var tempDir string
 
-	ginkgo.BeforeEach(func() {
+	ginkgo.BeforeEach(func(ctx context.Context) {
 		clusterName = fmt.Sprintf("cluster-%s", rand.String(5))
 		clusterManagerName = fmt.Sprintf("cluster-manager-%s", rand.String(5))
 
@@ -44,7 +43,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 		}
 
 		_, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Create(
-			context.TODO(),
+			ctx,
 			clusterProfile,
 			metav1.CreateOptions{},
 		)
@@ -61,16 +60,16 @@ var _ = ginkgo.Describe("Access config test", func() {
 		}
 	})
 
-	ginkgo.It("Should get access config by cluster profile", func() {
+	ginkgo.It("Should get access config by cluster profile", func(ctx context.Context) {
 		cp, err := clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).Get(
-			context.TODO(), clusterName, metav1.GetOptions{})
+			ctx, clusterName, metav1.GetOptions{})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		cp.Status = v1alpha2.ClusterProfileStatus{
 			AccessProviders: []v1alpha2.AccessProvider{
 				{
 					Name: "provider1",
-					Cluster: clientcmdv1.Cluster{
+					Cluster: v1alpha2.Cluster{
 						Server:                   cfg.Host,
 						CertificateAuthorityData: cfg.CAData,
 					},
@@ -79,7 +78,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 		}
 
 		cp, err = clusterProfileClient.ApisV1alpha2().ClusterProfiles(testNamespace).UpdateStatus(
-			context.TODO(),
+			ctx,
 			cp,
 			metav1.UpdateOptions{},
 		)
@@ -137,7 +136,7 @@ var _ = ginkgo.Describe("Access config test", func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		// test if the client can connect to the cluster
-		_, err = kubeClientFromCP.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+		_, err = kubeClientFromCP.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 })
