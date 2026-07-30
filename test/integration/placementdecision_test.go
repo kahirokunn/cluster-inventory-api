@@ -175,6 +175,42 @@ var _ = ginkgo.Describe("PlacementDecisionAPI test", func() {
 		gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
 	})
 
+	ginkgo.It("Should reject an update that grows a PlacementDecision beyond 100 decisions", func(ctx context.Context) {
+		decisions := make([]cpv1alpha2.ClusterDecision, 100)
+		for i := range decisions {
+			decisions[i] = cpv1alpha2.ClusterDecision{
+				ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+					Name: fmt.Sprintf("cluster-%d", i),
+				},
+			}
+		}
+
+		placementDecision, err := clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Create(
+			ctx,
+			&cpv1alpha2.PlacementDecision{
+				ObjectMeta: metav1.ObjectMeta{Name: decisionName},
+				Decisions:  decisions,
+			},
+			metav1.CreateOptions{},
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		updated := placementDecision.DeepCopy()
+		updated.Decisions = append(updated.Decisions, cpv1alpha2.ClusterDecision{
+			ClusterProfileRef: cpv1alpha2.ClusterProfileReference{
+				Name: "cluster-last",
+			},
+		})
+
+		_, err = clusterProfileClient.ApisV1alpha2().PlacementDecisions(testNamespace).Update(
+			ctx,
+			updated,
+			metav1.UpdateOptions{},
+		)
+		gomega.Expect(err).To(gomega.HaveOccurred())
+		gomega.Expect(errors.IsInvalid(err)).To(gomega.BeTrue())
+	})
+
 	ginkgo.It("Should accept a PlacementDecision with a dotted cluster profile name", func(ctx context.Context) {
 		placementDecision := &cpv1alpha2.PlacementDecision{
 			ObjectMeta: metav1.ObjectMeta{Name: decisionName},
