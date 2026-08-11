@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "capi-controller.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "capi-controller.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{ include "capi-controller.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "capi-controller.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      {{- with .Values.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.credentialPlugin.enabled }}
+      initContainers:
+        - name: copy-credential-plugin
+          image: "{{ .Values.credentialPlugin.image.repository }}:{{ .Values.credentialPlugin.image.tag }}"
+          imagePullPolicy: {{ .Values.credentialPlugin.image.pullPolicy | default "IfNotPresent" }}
+          command: ["sh", "-c", "mkdir -p /plugins/bin && cp /bin/kubeconfig-secretreader-plugin /plugins/bin/"]
+          volumeMounts:
+            - name: credential-plugin
+              mountPath: /plugins
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      {{- end }}
+      containers:
+        - name: manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --enable-capi-cluster-to-clusterprofile-controller={{ .Values.controllers.capiClusterToClusterProfile }}
+            - --enable-clusterprofile-properties-to-labels-controller={{ .Values.controllers.propertiesToLabels }}
+            - --enable-webhooks={{ .Values.webhooks.enabled }}
+            - --cluster-manager-name={{ .Values.clusterManagerName }}
+            - --leader-elect={{ .Values.leaderElection.enabled }}
+            - --requeue-after-duration={{ .Values.requeueAfterDuration }}
+            - --max-concurrent-reconciles={{ .Values.maxConcurrentReconciles }}
+          {{- if .Values.credentialPlugin.enabled }}
+            - --credential-providers-config=/etc/credential-providers/provider-config.json
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8080
+              name: metrics
+              protocol: TCP
+            - containerPort: 8081
+              name: health
+              protocol: TCP
+            {{- if .Values.webhooks.enabled }}
+            - containerPort: {{ .Values.webhooks.port }}
+              name: webhook
+              protocol: TCP
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          {{- if .Values.webhooks.enabled }}
+            - name: webhook-cert
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+          {{- end }}
+          {{- if .Values.credentialPlugin.enabled }}
+            - name: credential-plugin
+              mountPath: /plugins
+              readOnly: true
+            - name: credential-provider-config
+              mountPath: /etc/credential-providers
+              readOnly: true
+          {{- end }}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- if .Values.webhooks.enabled }}
+        - name: webhook-cert
+          secret:
+            secretName: {{ include "capi-controller.fullname" . }}-webhook-cert
+      {{- end }}
+      {{- if .Values.credentialPlugin.enabled }}
+        - name: credential-plugin
+          emptyDir: {}
+        - name: credential-provider-config
+          configMap:
+            name: {{ include "capi-controller.fullname" . }}-credential-providers
+      {{- end }}

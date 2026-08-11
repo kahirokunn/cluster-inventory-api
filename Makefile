@@ -87,12 +87,23 @@ build-secretreader-plugin: manifests generate fmt vet ## Build secretreader plug
 build-kubeconfig-secretreader-plugin: manifests generate fmt vet ## Build kubeconfig secretreader plugin binary.
 	go build -o ./bin/kubeconfig-secretreader-plugin ./plugins/kubeconfig-secretreader/cmd/plugin
 
+.PHONY: build-capi-controller
+build-capi-controller: ## Build capi-controller binary.
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ./bin/capi-controller ./cmd/capi-controller
+
 .PHONY: build
-build: build-secretreader-plugin build-kubeconfig-secretreader-plugin ## Build all plugin binaries.
+build: build-secretreader-plugin build-kubeconfig-secretreader-plugin build-capi-controller ## Build all binaries.
 
 .PHONY: build-controller-example
 build-controller-example: ## Build controller example binary.
 	go build -o ./examples/controller-example/controller-example.bin ./examples/controller-example
+
+# CAPI_CONTROLLER_IMG defines the image for the capi-controller.
+CAPI_CONTROLLER_IMG ?= capi-controller:latest
+
+.PHONY: docker-build-capi-controller
+docker-build-capi-controller: ## Build docker image for capi-controller.
+	$(CONTAINER_TOOL) build -f hack/Dockerfile.capi-controller -t $(CAPI_CONTROLLER_IMG) .
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
