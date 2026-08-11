@@ -162,6 +162,15 @@ const (
 	LabelClusterSetKey = "multicluster.x-k8s.io/clusterset"
 )
 
+const (
+	// PropertyClusterID is the name of the well-known property that identifies
+	// a member cluster independently of any inventory or ClusterSet membership.
+	// The value SHOULD be unique across clusters and immutable for the lifetime
+	// of the cluster; the UID of the cluster's kube-system namespace is a
+	// recommended value.
+	PropertyClusterID = "id.k8s.io"
+)
+
 //+genclient
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
