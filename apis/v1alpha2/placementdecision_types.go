@@ -30,8 +30,17 @@ const (
 	// DecisionIndexLabel indicates the index position of this slice when order matters.
 	// If a scheduler needs to preserve the order of selected clusters and the result spans
 	// multiple slices, it should label each PlacementDecision with this label where the
-	// value starts at 0 and increments by 1.
+	// value is unique within the decision key, starts at 0, and increments by 1 across all slices.
 	DecisionIndexLabel = "multicluster.x-k8s.io/decision-index"
+
+	// DecisionGroupIndexLabel indicates the zero-based processing order of the decision group
+	// that contains this slice. All slices in one group share the same value. Producers that
+	// set this label MUST also set DecisionKeyLabel on every slice in the decision.
+	DecisionGroupIndexLabel = "multicluster.x-k8s.io/decision-group-index"
+
+	// DecisionGroupNameLabel is an optional descriptive name for the decision group that
+	// contains this slice. The group index, not this name, defines group identity and order.
+	DecisionGroupNameLabel = "multicluster.x-k8s.io/decision-group-name"
 
 	// PlacementKeyLabel links a decision to an originating workload when applicable.
 	// Producers may set this label on PlacementDecision slices when the decision is workload scoped.
