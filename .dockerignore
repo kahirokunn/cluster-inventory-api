@@ -1,6 +1,9 @@
 # More info: https://docs.docker.com/engine/reference/builder/#dockerignore-file
 # Ignore build and test binaries.
 bin/
+.git/
+_tmp/
+cover.out
 
 # Ignore tooling not needed for plugin image build.
 .envrc

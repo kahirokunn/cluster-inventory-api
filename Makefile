@@ -94,6 +94,15 @@ build: build-secretreader-plugin build-kubeconfig-secretreader-plugin ## Build a
 build-controller-example: ## Build controller example binary.
 	go build -o ./examples/controller-example/controller-example.bin ./examples/controller-example
 
+.PHONY: build-addon-webhook
+build-addon-webhook: ## Build the Addon admission webhook and certificate renewal binaries.
+	go build -o ./bin/addon-webhook ./cmd/addon-webhook
+	go build -o ./bin/addon-certgen ./cmd/addon-certgen
+
+.PHONY: docker-build-addon-webhook
+docker-build-addon-webhook: ## Build the Addon webhook image (IMG defaults to addon-webhook:dev).
+	$(CONTAINER_TOOL) build -f hack/Dockerfile.addon-webhook -t $(or $(IMG),addon-webhook:dev) .
+
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./plugins/secretreader/cmd/plugin/main.go

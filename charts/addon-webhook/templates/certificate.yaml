@@ -1,0 +1,27 @@
+{{- if eq .Values.tls.method "certmanager" }}
+{{- if not .Values.tls.certManager.issuerRef.name }}
+  {{- fail "tls.certManager.issuerRef.name is required in certmanager mode" }}
+{{- end }}
+{{- $name := include "addon-webhook.fullname" . }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+spec:
+  secretName: {{ $name }}-tls
+  issuerRef:
+    {{- toYaml .Values.tls.certManager.issuerRef | nindent 4 }}
+  dnsNames:
+    - {{ $name }}
+    - {{ $name }}.{{ .Release.Namespace }}
+    - {{ $name }}.{{ .Release.Namespace }}.svc
+    - {{ $name }}.{{ .Release.Namespace }}.svc.cluster.local
+  duration: {{ .Values.tls.certManager.duration | quote }}
+  renewBefore: {{ .Values.tls.certManager.renewBefore | quote }}
+  privateKey:
+    rotationPolicy: Always
+  usages: [digital signature, server auth]
+{{- end }}

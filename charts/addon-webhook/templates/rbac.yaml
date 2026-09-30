@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "addon-webhook.fullname" . }}
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [multicluster.x-k8s.io]
+    resources: [addonclasses]
+    verbs: [get]
+  - apiGroups: [multicluster.x-k8s.io]
+    resources: [addons]
+    verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "addon-webhook.fullname" . }}
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "addon-webhook.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "addon-webhook.fullname" . }}
+    namespace: {{ .Release.Namespace }}
