@@ -55,6 +55,25 @@ The `PlacementDecision API` solves the integration explosion problem:
 - **Enables consumer portability**: New consumers work with all schedulers by implementing one standard API.
 - **Simplifies RBAC**: One resource schema to secure instead of different permissions for each scheduler's API.
 
+### Slicing and Ordered Groups
+
+A scheduler stores at most 100 clusters in one `PlacementDecision`. When a result is larger,
+it uses `multicluster.x-k8s.io/decision-key` to identify all slices that belong to the same result.
+Consumers such as GitOps engines can combine those slices without knowing which scheduler produced them.
+
+Schedulers can also publish ordered groups for staged processing. For example, a progressive rollout
+selects 150 canary clusters followed by 80 production clusters:
+
+| PlacementDecision | Cluster count | `decision-index` | `decision-group-index` | `decision-group-name` |
+| --- | ---: | ---: | ---: | --- |
+| `rollout-decision-1` | 100 | `0` | `0` | `canary` |
+| `rollout-decision-2` | 50 | `1` | `0` | `canary` |
+| `rollout-decision-3` | 80 | `2` | `1` | `production` |
+
+The consumer treats the first two objects as one canary group because they share group index `0`,
+then processes production group `1`. The decision index remains unique across all three slices.
+A scheduler that does not need staged processing omits both decision group labels.
+
 ## Plugin OCI Images
 
 Published plugin images and runtime consumption patterns are documented in
