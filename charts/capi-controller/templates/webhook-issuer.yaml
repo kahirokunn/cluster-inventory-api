@@ -1,0 +1,17 @@
+{{- if .Values.webhooks.enabled }}
+{{- $issuer := .Values.webhooks.certIssuer | default (dict) }}
+{{- $issuerName := $issuer.name | default "capi-controller-selfsigned" }}
+{{- $issuerKind := $issuer.kind | default "ClusterIssuer" }}
+{{- $createIssuer := true }}
+{{- if hasKey $issuer "create" }}
+{{- $createIssuer = $issuer.create }}
+{{- end }}
+{{- if and $createIssuer (eq $issuerKind "ClusterIssuer") (not (lookup "cert-manager.io/v1" "ClusterIssuer" "" $issuerName)) }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ $issuerName }}
+spec:
+  selfSigned: {}
+{{- end }}
+{{- end }}
