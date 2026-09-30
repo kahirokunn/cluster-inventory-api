@@ -1,0 +1,122 @@
+{{- if eq .Values.tls.method "cronJob" }}
+{{- $name := include "addon-webhook.fullname" . }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}-certgen
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}-certgen
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [{{ $name }}-ca, {{ $name }}-tls]
+    verbs: [get, update]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [{{ $name }}]
+    verbs: [get, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}-certgen
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}-certgen
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}-certgen
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}-certgen
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [admissionregistration.k8s.io]
+    resources: [validatingwebhookconfigurations]
+    resourceNames: [{{ $name }}]
+    verbs: [get, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}-certgen
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}-certgen
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}-certgen
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}-certgen
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "addon-webhook.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.tls.cronJob.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 360
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: {{ $name }}-certgen
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: certgen
+              image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: [/addon-certgen]
+              args:
+                - --namespace={{ .Release.Namespace }}
+                - --service={{ $name }}
+                - --ca-secret={{ $name }}-ca
+                - --tls-secret={{ $name }}-tls
+                - --webhook-config={{ $name }}
+                - --deployment={{ $name }}
+                - --ca-validity={{ mul .Values.tls.caValidityDays 24 }}h
+                - --leaf-validity={{ mul .Values.tls.certValidityDays 24 }}h
+                - --renew-before={{ mul .Values.tls.cronJob.renewBeforeDays 24 }}h
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+{{- end }}

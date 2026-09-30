@@ -27,6 +27,14 @@ type FakeApisV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeApisV1alpha1) Addons(namespace string) v1alpha1.AddonInterface {
+	return newFakeAddons(c, namespace)
+}
+
+func (c *FakeApisV1alpha1) AddonClasses(namespace string) v1alpha1.AddonClassInterface {
+	return newFakeAddonClasses(c, namespace)
+}
+
 func (c *FakeApisV1alpha1) ClusterProfiles(namespace string) v1alpha1.ClusterProfileInterface {
 	return newFakeClusterProfiles(c, namespace)
 }
