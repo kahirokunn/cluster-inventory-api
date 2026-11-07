@@ -1,0 +1,6 @@
+apiVersion: v2
+name: addon-webhook
+description: Admission webhooks for the multicluster Addon API
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

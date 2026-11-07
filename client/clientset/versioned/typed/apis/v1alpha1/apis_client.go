@@ -27,6 +27,8 @@ import (
 
 type ApisV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	AddonsGetter
+	AddonClassesGetter
 	ClusterProfilesGetter
 	PlacementDecisionsGetter
 }
@@ -34,6 +36,14 @@ type ApisV1alpha1Interface interface {
 // ApisV1alpha1Client is used to interact with features provided by the apis group.
 type ApisV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *ApisV1alpha1Client) Addons(namespace string) AddonInterface {
+	return newAddons(c, namespace)
+}
+
+func (c *ApisV1alpha1Client) AddonClasses(namespace string) AddonClassInterface {
+	return newAddonClasses(c, namespace)
 }
 
 func (c *ApisV1alpha1Client) ClusterProfiles(namespace string) ClusterProfileInterface {

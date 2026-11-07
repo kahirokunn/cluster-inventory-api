@@ -1,0 +1,29 @@
+replicaCount: 2
+
+image:
+  repository: addon-webhook
+  tag: dev
+  pullPolicy: IfNotPresent
+
+tls:
+  # helm, cronJob, or certmanager
+  method: helm
+  caValidityDays: 3650
+  certValidityDays: 365
+  helm:
+    renewOnUpgrade: false
+  cronJob:
+    schedule: "0 0 1 * *"
+    renewBeforeDays: 90
+  certManager:
+    # Set to an issuer that places its CA certificate in the issued Secret.
+    issuerRef: {}
+    duration: 2160h
+    renewBefore: 720h
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 256Mi

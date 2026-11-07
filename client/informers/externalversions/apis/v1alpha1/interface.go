@@ -23,6 +23,10 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// Addons returns a AddonInformer.
+	Addons() AddonInformer
+	// AddonClasses returns a AddonClassInformer.
+	AddonClasses() AddonClassInformer
 	// ClusterProfiles returns a ClusterProfileInformer.
 	ClusterProfiles() ClusterProfileInformer
 	// PlacementDecisions returns a PlacementDecisionInformer.
@@ -38,6 +42,16 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// Addons returns a AddonInformer.
+func (v *version) Addons() AddonInformer {
+	return &addonInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AddonClasses returns a AddonClassInformer.
+func (v *version) AddonClasses() AddonClassInformer {
+	return &addonClassInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ClusterProfiles returns a ClusterProfileInformer.

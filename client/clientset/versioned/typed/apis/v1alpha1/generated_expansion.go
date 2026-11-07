@@ -17,6 +17,10 @@ limitations under the License.
 
 package v1alpha1
 
+type AddonExpansion interface{}
+
+type AddonClassExpansion interface{}
+
 type ClusterProfileExpansion interface{}
 
 type PlacementDecisionExpansion interface{}

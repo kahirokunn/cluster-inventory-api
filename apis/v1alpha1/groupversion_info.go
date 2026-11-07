@@ -42,6 +42,11 @@ const (
 	// PlacementDecisionKind is the resource kind for PlacementDecision.
 	PlacementDecisionKind     = "PlacementDecision"
 	placementDecisionResource = "placementdecisions"
+
+	AddonClassKind     = "AddonClass"
+	addonClassResource = "addonclasses"
+	AddonKind          = "Addon"
+	addonResource      = "addons"
 )
 
 var (
@@ -90,6 +95,11 @@ var (
 		Version:  Version,
 		Resource: placementDecisionResource,
 	}
+
+	AddonClassSchemeGroupVersionKind     = schema.GroupVersionKind{Group: Group, Version: Version, Kind: AddonClassKind}
+	AddonClassSchemeGroupVersionResource = schema.GroupVersionResource{Group: Group, Version: Version, Resource: addonClassResource}
+	AddonSchemeGroupVersionKind          = schema.GroupVersionKind{Group: Group, Version: Version, Kind: AddonKind}
+	AddonSchemeGroupVersionResource      = schema.GroupVersionResource{Group: Group, Version: Version, Resource: addonResource}
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
