@@ -1,0 +1,25 @@
+{{- if .Values.webhooks.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "capi-controller.fullname" . }}-cluster
+  labels:
+    {{- include "capi-controller.labels" . | nindent 4 }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "capi-controller.fullname" . }}-webhook-cert
+webhooks:
+  - name: vcluster.clusterprofiles.multicluster.x-k8s.io
+    admissionReviewVersions: ["v1"]
+    clientConfig:
+      service:
+        name: {{ include "capi-controller.fullname" . }}-webhook
+        namespace: {{ .Release.Namespace }}
+        path: /validate-cluster
+    failurePolicy: {{ .Values.webhooks.failurePolicy }}
+    rules:
+      - apiGroups: ["cluster.x-k8s.io"]
+        apiVersions: ["v1beta1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["clusters"]
+    sideEffects: None
+{{- end }}

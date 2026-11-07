@@ -1,0 +1,7 @@
+apiVersion: v2
+# Each cluster source (CAPI, Rancher, etc.) gets its own chart under charts/
+name: capi-controller
+description: CAPI Cluster to ClusterProfile controller for Cluster Inventory API
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

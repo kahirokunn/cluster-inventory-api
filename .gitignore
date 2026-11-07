@@ -5,6 +5,7 @@
 *.so
 *.dylib
 bin/*
+capi-controller
 vendor/*
 Dockerfile.cross
 

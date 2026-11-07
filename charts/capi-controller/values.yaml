@@ -1,0 +1,49 @@
+replicaCount: 1
+
+image:
+  repository: registry.k8s.io/cluster-inventory-api/capi-controller
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: capi-controller
+
+clusterManagerName: "capi"
+
+controllers:
+  capiClusterToClusterProfile: true
+  propertiesToLabels: true
+
+webhooks:
+  enabled: true
+  port: 9443
+  failurePolicy: Fail
+  certIssuer:
+    create: true
+    name: capi-controller-selfsigned
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+leaderElection:
+  enabled: false
+
+requeueAfterDuration: "15s"
+maxConcurrentReconciles: 3
+
+tolerations: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+credentialPlugin:
+  enabled: false
+  image:
+    repository: registry.k8s.io/cluster-inventory-api/kubeconfig-secretreader-plugin
+    tag: latest
+    pullPolicy: IfNotPresent
